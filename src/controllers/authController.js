@@ -11,9 +11,9 @@ export const register = async (req, res) => {
   try {
     const { email, password } = req.body;
     const result = await registerService(email, password);
-    res.status(201).json({ message: result.message });
+    return successResponse(res, result.message);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    return errorResponse(res, err.message, 400);
   }
 };
 
@@ -21,9 +21,9 @@ export const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
     const result = await verifyOtpService(email, otp);
-    res.json({ message: result.message });
+    return successResponse(res, result.message);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    return errorResponse(res, err.message, 400);
   }
 };
 export const login = async (req, res) => {
