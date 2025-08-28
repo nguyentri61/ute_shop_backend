@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { sendResetPasswordMail } from "../utils/mailer.js";
+import { sendResetPasswordMail, sendOtpMail } from "../utils/mailer.js";
 
 const prisma = new PrismaClient();
 
@@ -37,4 +37,37 @@ export const forgetPasswordService = async (email) => {
   });
 
   return { message: "New password sent to your email" };
+};
+
+export const registerService = async (email, password) => {
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) throw new Error("Email already registered");
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+
+  await prisma.user.create({
+    data: { email, password: hashedPassword, otp, otpExpiry },
+  });
+
+  await sendOtpMail(email, otp);
+
+  return { message: "User registered. Check email for OTP." };
+};
+
+export const verifyOtpService = async (email, otp) => {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) throw new Error("User not found");
+
+  if (user.otp !== otp || new Date() > user.otpExpiry) {
+    throw new Error("Invalid or expired OTP");
+  }
+
+  await prisma.user.update({
+    where: { email },
+    data: { verified: true, otp: null, otpExpiry: null },
+  });
+
+  return { message: "OTP verified successfully" };
 };
