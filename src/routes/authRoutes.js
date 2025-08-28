@@ -4,8 +4,9 @@ import {
   login,
   register,
   verifyOtp,
+  getMyProfile,
 } from "../controllers/authController.js";
-
+import { authMiddleware } from "../middlewares/authMiddlewares.js";
 const router = express.Router();
 
 router.post("/register", register);
@@ -17,4 +18,5 @@ router.post("/forgot-password", forgetPassword);
 // app.get("/api/profile", authMiddleware, (req, res) => {
 //   res.json({ message: "Welcome!", user: req.user });
 // });
+router.get("/my-profile", authMiddleware, getMyProfile);
 export default router;

@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { sendResetPasswordMail, sendOtpMail } from "../utils/mailer.js";
@@ -14,7 +14,6 @@ export const loginService = async (email, password) => {
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) throw new Error("Invalid credentials");
-
   const accessToken = jwt.sign(
     { id: user.id, email: user.email },
     process.env.JWT_SECRET,
@@ -23,7 +22,18 @@ export const loginService = async (email, password) => {
 
   return { message: "Login successful", accessToken };
 };
-
+export const getProfileById = async (id) => {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      email: true,
+      verified: true,
+      createdAt: true,
+    },
+  });
+  return user;
+};
 export const forgetPasswordService = async (email) => {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) throw new Error("User not found");
