@@ -15,4 +15,8 @@ model User {
   otpExpiry DateTime?
   verified  Boolean  @default(false)
   createdAt DateTime @default(now())
+  fullName  String?
+  address   String?
+  phone     String?  @unique
+  gender    String?
 }
