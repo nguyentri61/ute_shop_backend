@@ -2,6 +2,12 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import path from "path";
+
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 const app = express();
@@ -69,9 +75,16 @@ console.log("Using basePath:", basePath);
     try {
         const { default: authRoutes } = await import("./routes/authRoutes.js");
         const { default: userRoutes } = await import("./routes/userRoutes.js");
+        const { default: productRoutes } = await import("./routes/productRoutes.js")
+        const { default: categoryRoutes } = await import("./routes/categoryRoutes.js")
 
         app.use(`${basePath}/auth`, authRoutes);
         app.use(`${basePath}/users`, userRoutes);
+        app.use(`${basePath}/products`, productRoutes);
+        app.use(`${basePath}/categories`, categoryRoutes);
+
+        app.use("/public", express.static(path.join(__dirname, "../public")));
+
 
         // health check
         app.get("/", (req, res) => res.json({ ok: true }));

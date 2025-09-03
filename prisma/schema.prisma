@@ -1,22 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+model category {
+  id        String    @id
+  name      String
+  icon      String?
+  createdAt DateTime  @default(now())
+  product   product[]
 }
 
-model User {
-  id        String   @id @default(uuid()) 
-  email     String   @unique
+model orderitem {
+  id        String  @id
+  productId String
+  quantity  Int
+  product   product @relation(fields: [productId], references: [id], map: "OrderItem_productId_fkey")
+
+  @@index([productId], map: "OrderItem_productId_fkey")
+}
+
+model product {
+  id            String         @id
+  name          String
+  description   String?
+  price         Float
+  discountPrice Float?
+  stock         Int
+  viewCount     Int            @default(0)
+  createdAt     DateTime       @default(now())
+  categoryId    String
+  orderitem     orderitem[]
+  category      category       @relation(fields: [categoryId], references: [id], map: "Product_categoryId_fkey")
+  productimage  productimage[]
+
+  @@index([categoryId], map: "Product_categoryId_fkey")
+}
+
+model productimage {
+  id        String  @id
+  url       String
+  productId String
+  product   product @relation(fields: [productId], references: [id], map: "ProductImage_productId_fkey")
+
+  @@index([productId], map: "ProductImage_productId_fkey")
+}
+
+model user {
+  id        String    @id
+  email     String    @unique(map: "User_email_key")
   password  String
   otp       String?
   otpExpiry DateTime?
-  verified  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  fullName  String?
+  verified  Boolean   @default(false)
+  createdAt DateTime  @default(now())
   address   String?
-  phone     String?
+  fullName  String?
   gender    String?
+  phone     String?
 }
