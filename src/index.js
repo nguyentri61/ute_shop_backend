@@ -69,9 +69,9 @@ console.log("Using basePath:", basePath);
     try {
         const { default: authRoutes } = await import("./routes/authRoutes.js");
         const { default: userRoutes } = await import("./routes/userRoutes.js");
-        
+
         app.use(`${basePath}/auth`, authRoutes);
-        app.use(`${basePath}/user`, userRoutes);
+        app.use(`${basePath}/users`, userRoutes);
 
         // health check
         app.get("/", (req, res) => res.json({ ok: true }));

@@ -1,9 +1,24 @@
 import { PrismaClient } from "@prisma/client";
+import validator from "validator"; // For phone number validation
 
 const prisma = new PrismaClient();
 
 export const updateUserService = async (userId, updateData) => {
-    // Kiểm tra user có tồn tại không
+    // Validate input data
+    if (updateData.phone && !validator.isMobilePhone(updateData.phone, "any")) {
+        throw new Error("Invalid phone number format");
+    }
+
+    // Nên thêm region cụ thể cho VN
+    if (updateData.phone && !validator.isMobilePhone(updateData.phone, "vi-VN")) {
+        throw new Error("Số điện thoại không hợp lệ");
+    }
+
+    if (updateData.gender && !["MALE", "FEMALE", "OTHER"].includes(updateData.gender)) {
+        throw new Error("Invalid gender value");
+    }
+
+    // Check if user exists
     const existingUser = await prisma.user.findUnique({
         where: { id: userId },
     });
@@ -12,36 +27,50 @@ export const updateUserService = async (userId, updateData) => {
         throw new Error("User not found");
     }
 
-    // Kiểm tra nếu phone được cập nhật và đã tồn tại
+    // Check if phone number already exists (chỉ khi phone được cập nhật)
     if (updateData.phone && updateData.phone !== existingUser.phone) {
-        const phoneExists = await prisma.user.findUnique({
-            where: { phone: updateData.phone },
+        const phoneExists = await prisma.user.findFirst({
+            where: {
+                phone: updateData.phone,
+                id: { not: userId } // Loại trừ user hiện tại
+            },
         });
         if (phoneExists) {
             throw new Error("Phone number already exists");
         }
     }
 
-    // Cập nhật thông tin user
-    const updatedUser = await prisma.user.update({
-        where: { id: userId },
-        data: {
-            fullName: updateData.fullName,
-            address: updateData.address,
-            phone: updateData.phone,
-            gender: updateData.gender,
-        },
-        select: {
-            id: true,
-            email: true,
-            fullName: true,
-            address: true,
-            phone: true,
-            gender: true,
-            verified: true,
-            createdAt: true,
-        },
-    });
+    try {
+        // Update user - chỉ cập nhật các field có giá trị
+        const dataToUpdate = {};
+        if (updateData.fullName !== undefined) dataToUpdate.fullName = updateData.fullName;
+        if (updateData.address !== undefined) dataToUpdate.address = updateData.address;
+        if (updateData.phone !== undefined) dataToUpdate.phone = updateData.phone;
+        if (updateData.gender !== undefined) dataToUpdate.gender = updateData.gender;
 
-    return { message: "User updated successfully", user: updatedUser };
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: dataToUpdate,
+            select: {
+                id: true,
+                email: true,
+                fullName: true,
+                address: true,
+                phone: true,
+                gender: true,
+                verified: true,
+                createdAt: true,
+            },
+        });
+
+        return { message: "User updated successfully", user: updatedUser };
+    } catch (error) {
+        console.error("Update user error:", error);
+
+        if (error.code === "P2002") {
+            // Có thể là unique constraint violation khác ngoài phone
+            throw new Error("Dữ liệu đã tồn tại trong hệ thống");
+        }
+        throw new Error("Failed to update user: " + error.message);
+    }
 };

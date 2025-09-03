@@ -30,6 +30,10 @@ export const getProfileById = async (id) => {
       email: true,
       verified: true,
       createdAt: true,
+      fullName: true,
+      phone: true,
+      address: true,
+      gender: true,
     },
   });
   return user;
