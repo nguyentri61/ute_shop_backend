@@ -1,5 +1,6 @@
 import {
     getAllProducts,
+    getPaginatedProducts,
     getNewestProducts,
     getBestSellingProducts,
     getMostViewedProducts,
@@ -15,6 +16,19 @@ export const allProducts = async (req, res) => {
         return errorResponse(res, err.message, 500);
     }
 };
+
+export const paginatedProducts = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+
+        const products = await getPaginatedProducts(page, limit);
+        return successResponse(res, "Lấy sản phẩm theo phân trang", products);
+    } catch (err) {
+        return errorResponse(res, err.message, 500);
+    }
+};
+
 
 export const newestProducts = async (req, res) => {
     try {

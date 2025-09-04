@@ -3,8 +3,21 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 // Lấy tất cả sản phẩm
-export const findAllProducts = async () => {
+export const findAllProducts = async (page, limit, skip) => {
     return prisma.product.findMany({
+        orderBy: { createdAt: "desc" },
+        include: { productimage: true },
+    });
+};
+
+export const findTotalProductsNumber = async () => {
+    return await prisma.product.count();
+};
+
+export const findProducts = async (skip, take) => {
+    return await prisma.product.findMany({
+        skip,
+        take,
         orderBy: { createdAt: "desc" },
         include: { productimage: true },
     });
