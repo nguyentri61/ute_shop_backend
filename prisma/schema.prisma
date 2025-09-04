@@ -8,7 +8,7 @@ datasource db {
 }
 
 model category {
-  id        String    @id
+  id        String    @id @default(uuid())
   name      String
   icon      String?
   createdAt DateTime  @default(now())
@@ -16,7 +16,7 @@ model category {
 }
 
 model orderitem {
-  id        String  @id
+  id        String  @id @default(uuid())
   productId String
   quantity  Int
   product   product @relation(fields: [productId], references: [id], map: "OrderItem_productId_fkey")
@@ -25,7 +25,7 @@ model orderitem {
 }
 
 model product {
-  id            String         @id
+  id            String         @id @default(uuid())
   name          String
   description   String?
   price         Float
@@ -42,7 +42,7 @@ model product {
 }
 
 model productimage {
-  id        String  @id
+  id        String  @id @default(uuid())
   url       String
   productId String
   product   product @relation(fields: [productId], references: [id], map: "ProductImage_productId_fkey")
@@ -51,7 +51,7 @@ model productimage {
 }
 
 model user {
-  id        String    @id
+  id        String    @id @default(uuid())
   email     String    @unique(map: "User_email_key")
   password  String
   otp       String?
