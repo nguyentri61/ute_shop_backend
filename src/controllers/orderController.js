@@ -1,4 +1,4 @@
-import { getMyOrders } from "../services/orderServices.js";
+import { getMyOrders, getOrderItemByOrderId } from "../services/orderServices.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 
 export const myOrders = async (req, res) => {
@@ -14,3 +14,17 @@ export const myOrders = async (req, res) => {
         return errorResponse(res, err.message, 500);
     }
 };
+
+export const orderItemByOrderId = async (req, res) => {
+    try {
+        const orderId = req.orderId;
+        if (!orderId) {
+            return errorResponse(res, "Chưa truyền OrderId");
+        }
+
+        const orderItems = await getOrderItemByOrderId(orderId);
+        return successResponse(res, "Danh sách sản phẩm của order này");
+    } catch (err) {
+        return errorResponse(res, err.message, 500);
+    }
+}

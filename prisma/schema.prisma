@@ -51,6 +51,7 @@ model product {
   orderitem     orderitem[]
   category      category       @relation(fields: [categoryId], references: [id], map: "Product_categoryId_fkey")
   productimage  productimage[]
+  variants      productVariant[]   
 
   @@index([categoryId], map: "Product_categoryId_fkey")
 }
@@ -62,6 +63,36 @@ model productimage {
   product   product @relation(fields: [productId], references: [id], map: "ProductImage_productId_fkey")
 
   @@index([productId], map: "ProductImage_productId_fkey")
+}
+
+model productVariant {
+  id        String   @id @default(uuid())
+  productId String
+  color     String?
+  size      String?
+  stock     Int
+  price     Float
+  discountPrice Float?
+
+  product   product @relation(fields: [productId], references: [id])
+  cartItems     cartItem[]   
+
+  @@index([productId])
+}
+
+model cartItem {
+  id          String         @id @default(uuid())
+  userId      String
+  variantId   String
+  quantity    Int       @default(1)
+  createdAt   DateTime  @default(now())
+
+  user        user            @relation(fields: [userId], references: [id])
+  variant     productVariant  @relation(fields: [variantId], references: [id])
+
+  @@index([userId])
+  @@index([variantId])
+  @@unique([userId, variantId]) // 1 user chỉ có 1 cartItem cho 1 variant
 }
 
 model user {
@@ -78,4 +109,5 @@ model user {
   phone     String?
 
   orders    order[]
+  cart      cartItem[] 
 }

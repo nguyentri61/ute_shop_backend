@@ -75,9 +75,11 @@ console.log("Using basePath:", basePath);
     try {
         const { default: authRoutes } = await import("./routes/authRoutes.js");
         const { default: userRoutes } = await import("./routes/userRoutes.js");
-        const { default: productRoutes } = await import("./routes/productRoutes.js")
-        const { default: categoryRoutes } = await import("./routes/categoryRoutes.js")
+        const { default: productRoutes } = await import("./routes/productRoutes.js");
+        const { default: categoryRoutes } = await import("./routes/categoryRoutes.js");
         const { default: orderRoutes } = await import("./routes/orderRoutes.js");
+        const { default: cartRoutes } = await import("./routes/cartRoutes.js");
+        const { default: productVariantRoutes } = await import("./routes/productVariantRoutes.js");
 
 
         app.use(`${basePath}/auth`, authRoutes);
@@ -85,6 +87,8 @@ console.log("Using basePath:", basePath);
         app.use(`${basePath}/products`, productRoutes);
         app.use(`${basePath}/categories`, categoryRoutes);
         app.use(`${basePath}/orders`, orderRoutes);
+        app.use(`${basePath}/carts`, cartRoutes);
+        app.use(`${basePath}/product-variant`, productVariantRoutes);
 
 
         app.use("/public", express.static(path.join(__dirname, "../public")));
