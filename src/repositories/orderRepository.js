@@ -59,24 +59,20 @@ export const findOrderItemByOrderId = async (orderId) => {
     return orderItems;
 };
 
-export async function createOrder(userId, total) {
-    return prisma.order.create({
-        data: { userId, total },
+export const createOrder = (userId, address, phone, total, client = prisma,) => {
+    return client.order.create({
+        data: { userId, address, phone, total }
     });
-}
+};
 
-export async function createOrderItems(orderId, items) {
-    return prisma.orderitem.createMany({
-        data: items.map(item => ({
+export const createOrderItems = (orderId, cartItems, client = prisma) => {
+    return client.orderitem.createMany({
+        data: cartItems.map(c => ({
             orderId,
-            productId: item.variant.productId,
-            quantity: item.quantity,
-        })),
+            variantId: c.variantId,
+            quantity: c.quantity,
+            price: c.variant.price
+        }))
     });
-}
+};
 
-export async function deleteCartItems(cartItemIds) {
-    return prisma.cartItem.deleteMany({
-        where: { id: { in: cartItemIds } },
-    });
-}

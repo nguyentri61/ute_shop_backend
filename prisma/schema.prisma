@@ -16,42 +16,46 @@ model category {
 }
 
 model order {
-  id        String      @id @default(uuid())
+  id        String   @id @default(uuid())
   userId    String
-  createdAt DateTime    @default(now())
-  total     Float       @default(0)
-  status    String      @default("pending")
+  address   String
+  phone     String
+  createdAt DateTime @default(now())
+  total     Float    @default(0)
+  status    String   @default("pending")
 
-  user      user        @relation(fields: [userId], references: [id])
-  items     orderitem[] // 1 order có nhiều orderitem
+  user  user        @relation(fields: [userId], references: [id])
+  items orderitem[] // 1 order có nhiều orderitem
 }
 
 model orderitem {
-  id        String   @id @default(uuid())
-  orderId   String   @map("order_id")
-  productId String   @map("product_id")
-  quantity  Int
+  id         String @id @default(uuid())
+  orderId    String @map("order_id")
+  variantId  String 
+  quantity   Int
+  price      Float @default(0)
 
-  order     order    @relation(fields: [orderId], references: [id])
-  product   product  @relation(fields: [productId], references: [id])
+  order    order    @relation(fields: [orderId], references: [id])
+  variant  productVariant @relation(fields: [variantId], references: [id])
 
   @@index([orderId])
-  @@index([productId])
+  @@index([variantId])
+
 }
+
 model product {
-  id            String         @id @default(uuid())
+  id            String           @id @default(uuid())
   name          String
   description   String?
   price         Float
   discountPrice Float?
   stock         Int
-  viewCount     Int            @default(0)
-  createdAt     DateTime       @default(now())
+  viewCount     Int              @default(0)
+  createdAt     DateTime         @default(now())
   categoryId    String
-  orderitem     orderitem[]
-  category      category       @relation(fields: [categoryId], references: [id], map: "Product_categoryId_fkey")
+  category      category         @relation(fields: [categoryId], references: [id], map: "Product_categoryId_fkey")
   productimage  productimage[]
-  variants      productVariant[]   
+  variants      productVariant[]
 
   @@index([categoryId], map: "Product_categoryId_fkey")
 }
@@ -66,33 +70,34 @@ model productimage {
 }
 
 model productVariant {
-  id        String   @id @default(uuid())
-  productId String
-  color     String?
-  size      String?
-  stock     Int
-  price     Float
+  id            String  @id @default(uuid())
+  productId     String
+  color         String?
+  size          String?
+  stock         Int
+  price         Float
   discountPrice Float?
 
-  product   product @relation(fields: [productId], references: [id])
-  cartItems     cartItem[]   
+  product   product    @relation(fields: [productId], references: [id])
+  cartItems cartItem[]
+  orderItems orderitem[]
 
   @@index([productId])
 }
 
 model cartItem {
-  id          String         @id @default(uuid())
-  userId      String
-  variantId   String
-  quantity    Int       @default(1)
-  createdAt   DateTime  @default(now())
+  id        String   @id @default(uuid())
+  userId    String
+  variantId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
 
-  user        user            @relation(fields: [userId], references: [id])
-  variant     productVariant  @relation(fields: [variantId], references: [id])
+  user      user           @relation(fields: [userId], references: [id])
+  variant   productVariant @relation(fields: [variantId], references: [id])
 
+  @@unique([userId, variantId]) // 1 user chỉ có 1 cartItem cho 1 variant
   @@index([userId])
   @@index([variantId])
-  @@unique([userId, variantId]) // 1 user chỉ có 1 cartItem cho 1 variant
 }
 
 model user {
@@ -108,6 +113,6 @@ model user {
   gender    String?
   phone     String?
 
-  orders    order[]
-  cart      cartItem[] 
+  orders order[]
+  cart   cartItem[]
 }

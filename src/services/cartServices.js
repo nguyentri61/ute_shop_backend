@@ -57,15 +57,21 @@ export const cartService = {
         return await cartRepository.addToCart(userId, variantId, quantity);
     },
 
-    async updateItem(userId, variantId, quantity) {
-        return await cartRepository.updateQuantity(userId, variantId, quantity);
+    async updateItem(cartItemId, quantity) {
+        return await cartRepository.updateQuantity(cartItemId, quantity);
     },
 
-    async removeItem(userId, variantId) {
-        return await cartRepository.removeFromCart(userId, variantId);
+    async removeItem(cartItemId) {
+        return await cartRepository.removeFromCart(cartItemId);
+    },
+
+    async removeManyItems(cartItemIds) {
+        return await cartRepository.removeManyFromCart(cartItemIds);
     },
 
     async clearCart(userId) {
         return await cartRepository.clearCart(userId);
     }
+
+
 };

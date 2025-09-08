@@ -28,8 +28,9 @@ export const cartRepository = {
     },
 
     // Lấy các cartItem đã được chọn 
-    async getCartByIds(cartItemIds) {
-        return prisma.cartItem.findMany({
+    async getCartByIds(cartItemIds, client = prisma) {
+
+        return client.cartItem.findMany({
             where: {
                 id: { in: cartItemIds },
             },
@@ -41,7 +42,6 @@ export const cartRepository = {
                 },
             },
         });
-
     },
 
     // Thêm hoặc cập nhật số lượng cartItem
@@ -62,24 +62,25 @@ export const cartRepository = {
     },
 
     // Cập nhật số lượng
-    async updateQuantity(userId, variantId, quantity) {
+    async updateQuantity(cartItemId, quantity) {
         if (quantity <= 0) {
-            return this.removeFromCart(userId, variantId);
+            return this.removeFromCart(cartItemId);
         }
         return prisma.cartItem.update({
-            where: {
-                userId_variantId: { userId, variantId },
-            },
+            where: { cartItemId },
             data: { quantity },
         });
     },
 
-    // Xóa 1 sản phẩm trong giỏ
-    async removeFromCart(userId, variantId) {
+    async removeCartItem(cartItemId) {
         return prisma.cartItem.delete({
-            where: {
-                userId_variantId: { userId, variantId },
-            },
+            where: { cartItemId },
+        });
+    },
+
+    async removeCartItems(cartItemIds, client = prisma) {
+        return client.cartItem.deleteMany({
+            where: { id: { in: cartItemIds } },
         });
     },
 
