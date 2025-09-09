@@ -44,11 +44,26 @@ export const cartRepository = {
         });
     },
 
+    async findById(cartItemId) {
+        return prisma.cartItem.findUnique({
+            where: {
+                id: cartItemId
+            },
+            include: {
+                variant: {
+                    include: {
+                        product: true,
+                    },
+                },
+            },
+        });
+    },
+
     // Thêm hoặc cập nhật số lượng cartItem
     async addToCart(userId, variantId, quantity = 1) {
         return prisma.cartItem.upsert({
             where: {
-                userId_variantId: { userId, variantId }, // vì @@unique([userId, variantId])
+                userId_variantId: { userId, variantId },
             },
             update: {
                 quantity: { increment: quantity },
@@ -63,18 +78,19 @@ export const cartRepository = {
 
     // Cập nhật số lượng
     async updateQuantity(cartItemId, quantity) {
-        if (quantity <= 0) {
-            return this.removeFromCart(cartItemId);
-        }
         return prisma.cartItem.update({
-            where: { cartItemId },
+            where: {
+                id: cartItemId
+            },
             data: { quantity },
         });
     },
 
     async removeCartItem(cartItemId) {
         return prisma.cartItem.delete({
-            where: { cartItemId },
+            where: {
+                id: cartItemId
+            },
         });
     },
 

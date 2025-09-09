@@ -53,12 +53,32 @@ export const cartService = {
     }
     ,
 
+    async getItemById(cartItemId) {
+        return await cartRepository.findById(cartItemId);
+    },
+
     async addItem(userId, variantId, quantity = 1) {
         return await cartRepository.addToCart(userId, variantId, quantity);
     },
 
     async updateItem(cartItemId, quantity) {
-        return await cartRepository.updateQuantity(cartItemId, quantity);
+
+        const item = await this.getItemById(cartItemId);
+        if (!item) {
+            throw new Error("Không tìm thấy sản phẩm trong giỏ hàng");
+        }
+
+        const qty = Number(quantity);
+        if (isNaN(qty)) {
+            throw new Error("Số lượng không hợp lệ");
+        }
+
+        if (qty <= 0) {
+            await cartRepository.removeCartItem(cartItemId);
+            return { id: cartItemId };
+        }
+
+        return await cartRepository.updateQuantity(cartItemId, qty);
     },
 
     async removeItem(cartItemId) {

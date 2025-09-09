@@ -37,26 +37,39 @@ export const cartController = {
             const userId = req.user.id;
             const { variantId, quantity } = req.body;
             const item = await cartService.addItem(userId, variantId, quantity);
-            res.json(item);
+            return successResponse(res, "Thêm giỏ hàng thành công", item);
         } catch (err) {
-            res.status(500).json({ error: err.message });
+            return errorResponse(res, err.message, 500);
         }
     },
 
     async updateItem(req, res) {
         try {
-            const userId = req.user.id;
-            const { variantId, quantity } = req.body;
-            const item = await cartService.updateItem(userId, variantId, quantity);
-            res.json(item);
+            const userId = req.user?.id;
+
+            if (!userId)
+                return errorResponse(res, err.message, 401);
+
+            const { cartItemId, quantity } = req.body;
+            const result = await cartService.updateItem(cartItemId, quantity);
+
+            if (result.id) {
+                // Trường hợp xoá item
+                return successResponse(res, result.message, result);
+            }
+
+            return successResponse(res, "Cập nhật số lượng thành công", result);
         } catch (err) {
-            res.status(500).json({ error: err.message });
+            return errorResponse(res, err.message, 500);
         }
     },
 
     async removeItem(req, res) {
         try {
             const userId = req.user.id;
+            if (!userId)
+                return res.status(401).json({ code: 401, message: "Unauthorized", data: null });
+
             const { variantId } = req.params;
             await cartService.removeItem(userId, variantId);
             res.json({ message: "Item removed from cart" });
