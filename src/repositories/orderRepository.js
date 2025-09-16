@@ -3,20 +3,25 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export const findOrdersByUserId = async (userId) => {
+  console.log("Repo: ", userId);
   const orders = await prisma.order.findMany({
     where: { userId },
     include: {
       items: {
         include: {
-          product: {
-            select: {
-              id: true,
-              name: true,
-              price: true,
-              discountPrice: true,
-              productImage: {
-                take: 1,
-                select: { url: true },
+          variant: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true,
+                  discountPrice: true,
+                  productImage: {
+                    take: 1,
+                    select: { url: true },
+                  },
+                },
               },
             },
           },
