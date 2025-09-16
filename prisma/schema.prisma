@@ -98,6 +98,8 @@ model cartItem {
   @@unique([userId, variantId]) // 1 user chỉ có 1 cartItem cho 1 variant
   @@index([userId])
   @@index([variantId])
+
+  @@map("cartitem")
 }
 
 model user {
