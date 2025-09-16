@@ -25,10 +25,10 @@ model order {
   status    String   @default("pending")
 
   user  user        @relation(fields: [userId], references: [id])
-  items orderitem[] // 1 order có nhiều orderitem
+  items orderItem[] // 1 order có nhiều orderitem
 }
 
-model orderitem {
+model orderItem {
   id         String @id @default(uuid())
   orderId    String @map("order_id")
   variantId  String 
@@ -54,13 +54,13 @@ model product {
   createdAt     DateTime         @default(now())
   categoryId    String
   category      category         @relation(fields: [categoryId], references: [id], map: "Product_categoryId_fkey")
-  productimage  productimage[]
+  productImage  productImage[]
   variants      productVariant[]
 
   @@index([categoryId], map: "Product_categoryId_fkey")
 }
 
-model productimage {
+model productImage {
   id        String  @id @default(uuid())
   url       String
   productId String
@@ -80,7 +80,7 @@ model productVariant {
 
   product   product    @relation(fields: [productId], references: [id])
   cartItems cartItem[]
-  orderItems orderitem[]
+  orderItems orderItem[]
 
   @@index([productId])
 }

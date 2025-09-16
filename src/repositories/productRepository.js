@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 export const findAllProducts = async (page, limit, skip) => {
   return prisma.product.findMany({
     orderBy: { createdAt: "desc" },
-    include: { productimage: true },
+    include: { productImage: true },
   });
 };
 
@@ -19,7 +19,7 @@ export const findProducts = async (skip, take) => {
     skip,
     take,
     orderBy: { createdAt: "desc" },
-    include: { productimage: true },
+    include: { productImage: true },
   });
 };
 
@@ -28,13 +28,13 @@ export const findNewestProducts = async (limit) => {
   return prisma.product.findMany({
     orderBy: { createdAt: "desc" },
     take: limit,
-    include: { productimage: true },
+    include: { productImage: true },
   });
 };
 
 // 2. Sản phẩm bán chạy nhất
 export const findBestSellingProducts = async (limit) => {
-  const productsSold = await prisma.orderitem.groupBy({
+  const productsSold = await prisma.orderItem.groupBy({
     by: ["productId"],
     _sum: { quantity: true },
     orderBy: { _sum: { quantity: "desc" } },
@@ -44,7 +44,7 @@ export const findBestSellingProducts = async (limit) => {
   const productIds = productsSold.map((p) => p.productId);
   const productDetails = await prisma.product.findMany({
     where: { id: { in: productIds } },
-    include: { productimage: true },
+    include: { productImage: true },
   });
 
   return productDetails.map((prod) => {
@@ -58,7 +58,7 @@ export const findMostViewedProducts = async (limit) => {
   return prisma.product.findMany({
     orderBy: { viewCount: "desc" },
     take: limit,
-    include: { productimage: true },
+    include: { productImage: true },
   });
 };
 
@@ -66,7 +66,7 @@ export const findMostViewedProducts = async (limit) => {
 export const findTopDiscountProducts = async (limit) => {
   const products = await prisma.product.findMany({
     where: { discountPrice: { not: null } },
-    include: { productimage: true },
+    include: { productImage: true },
   });
 
   const sorted = products
@@ -79,6 +79,6 @@ export const findTopDiscountProducts = async (limit) => {
 export const findProductById = async (id) => {
   return prisma.product.findUnique({
     where: { id },
-    include: { category: true, productimage: true },
+    include: { category: true, productImage: true },
   });
 };
