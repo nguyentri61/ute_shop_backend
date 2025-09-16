@@ -24,5 +24,5 @@ export const ProductDetailDTO = (product) => ({
   viewCount: product.viewCount,
   createdAt: product.createdAt,
   category: CategoryDTO(product.category),
-  images: product.productimage.map(ProductImageDTO),
+  images: product.productImage.map(ProductImageDTO),
 });
