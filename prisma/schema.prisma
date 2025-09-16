@@ -99,7 +99,6 @@ model cartItem {
   @@index([userId])
   @@index([variantId])
 
-  @@map("cartitem")
 }
 
 model user {
