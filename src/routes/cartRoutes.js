@@ -11,7 +11,7 @@ router.get("/", cartController.getCart);
 router.post("/preview-checkout", cartController.getSelectedCart);
 router.post("/add", cartController.addItem);
 router.put("/update", cartController.updateItem);
-router.delete("/remove/:variantId", cartController.removeItem);
+router.delete("/remove/:cartItemId", cartController.removeItem);
 router.delete("/clear", cartController.clearCart);
 
 export default router;

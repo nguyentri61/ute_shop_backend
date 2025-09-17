@@ -15,15 +15,17 @@ export const cartRepository = {
                 id: true,
                 name: true,
                 description: true,
-                productimage: {
+                productImage: {   // <-- sửa ở đây
                   take: 1,
-                  select: { url: true },
+                  select: { url: true }
                 },
-              },
-            },
-          },
-        },
-      },
+                price: true,
+                discountPrice: true,
+              }
+            }
+          }
+        }
+      }
     });
   },
 
