@@ -34,22 +34,38 @@ export const findNewestProducts = async (limit) => {
 
 // 2. Sản phẩm bán chạy nhất
 export const findBestSellingProducts = async (limit) => {
-  const productsSold = await prisma.orderItem.groupBy({
-    by: ["productId"],
+  // B1: group theo variantId
+  const variantsSold = await prisma.orderItem.groupBy({
+    by: ["variantId"],
     _sum: { quantity: true },
     orderBy: { _sum: { quantity: "desc" } },
     take: limit,
   });
 
-  const productIds = productsSold.map((p) => p.productId);
-  const productDetails = await prisma.product.findMany({
-    where: { id: { in: productIds } },
-    include: { productImage: true },
+  // Lấy danh sách variantId
+  const variantIds = variantsSold.map((v) => v.variantId);
+
+  // B2: lấy chi tiết variant và product
+  const variantDetails = await prisma.productVariant.findMany({
+    where: { id: { in: variantIds } },
+    include: {
+      product: {
+        include: { productImage: true }, // lấy ảnh của product
+      },
+    },
   });
 
-  return productDetails.map((prod) => {
-    const soldInfo = productsSold.find((p) => p.productId === prod.id);
-    return { ...prod, totalSold: soldInfo?._sum.quantity || 0 };
+  // B3: gắn thông tin số lượng đã bán vào product
+  return variantDetails.map((variant) => {
+    const soldInfo = variantsSold.find((v) => v.variantId === variant.id);
+    return {
+      ...variant.product, // dữ liệu product
+      variantId: variant.id,
+      variantStock: variant.stock,
+      variantPrice: variant.price,
+      variantDiscountPrice: variant.discountPrice,
+      totalSold: soldInfo?._sum.quantity || 0,
+    };
   });
 };
 
