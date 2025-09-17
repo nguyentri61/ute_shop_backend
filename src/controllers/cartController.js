@@ -4,7 +4,7 @@ import { successResponse, errorResponse } from "../utils/response.js";
 export const cartController = {
     async getCart(req, res) {
         try {
-            const userId = req.user.id; // user lấy từ middleware auth
+            const userId = req.user.id;
             const cart = await cartService.getCart(userId);
             return successResponse(res, "Lấy giỏ hàng thành công", cart);
         } catch (err) {
@@ -46,16 +46,13 @@ export const cartController = {
     async updateItem(req, res) {
         try {
             const userId = req.user?.id;
-
-            if (!userId)
-                return errorResponse(res, err.message, 401);
+            if (!userId) return errorResponse(res, "Unauthorized", 401);
 
             const { cartItemId, quantity } = req.body;
             const result = await cartService.updateItem(cartItemId, quantity);
 
-            if (result.id) {
-                // Trường hợp xoá item
-                return successResponse(res, result.message, result);
+            if (result?.removed) {
+                return successResponse(res, "Xóa sản phẩm khỏi giỏ hàng", result);
             }
 
             return successResponse(res, "Cập nhật số lượng thành công", result);
@@ -66,25 +63,25 @@ export const cartController = {
 
     async removeItem(req, res) {
         try {
-            const userId = req.user.id;
-            if (!userId)
-                return res.status(401).json({ code: 401, message: "Unauthorized", data: null });
+            const { cartItemId } = req.params; // trùng với route
+            console.log(cartItemId);
+            if (!cartItemId) return errorResponse(res, "Thiếu cartItemId", 400);
 
-            const { variantId } = req.params;
-            await cartService.removeItem(userId, variantId);
-            res.json({ message: "Item removed from cart" });
+            await cartService.removeItem(cartItemId);
+            return successResponse(res, "Xóa sản phẩm khỏi giỏ hàng thành công", null);
         } catch (err) {
-            res.status(500).json({ error: err.message });
+            return errorResponse(res, err.message, 500);
         }
-    },
+    }
+    ,
 
     async clearCart(req, res) {
         try {
             const userId = req.user.id;
             await cartService.clearCart(userId);
-            res.json({ message: "Cart cleared" });
+            return successResponse(res, "Đã xóa toàn bộ giỏ hàng", null);
         } catch (err) {
-            res.status(500).json({ error: err.message });
+            return errorResponse(res, err.message, 500);
         }
     },
 };

@@ -25,4 +25,14 @@ export const ProductDetailDTO = (product) => ({
   createdAt: product.createdAt,
   category: CategoryDTO(product.category),
   images: product.productImage.map(ProductImageDTO),
+  variants: product.variants
+    ? product.variants.map((variant) => ({
+      id: variant.id,
+      size: variant.size,
+      color: variant.color,
+      stock: variant.stock,
+      price: variant.price,
+      discountPrice: variant.discountPrice,
+    }))
+    : [],
 });

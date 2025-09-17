@@ -79,6 +79,20 @@ export const findTopDiscountProducts = async (limit) => {
 export const findProductById = async (id) => {
   return prisma.product.findUnique({
     where: { id },
-    include: { category: true, productImage: true },
+    include: {
+      category: true,
+      productImage: true,
+      variants: {   // dùng đúng tên field trong schema
+        select: {
+          id: true,
+          size: true,
+          color: true,
+          stock: true,
+          price: true,
+          discountPrice: true,
+        },
+      },
+    },
   });
 };
+

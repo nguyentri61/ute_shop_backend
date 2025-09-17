@@ -82,11 +82,11 @@ export const cartService = {
     },
 
     async removeItem(cartItemId) {
-        return await cartRepository.removeFromCart(cartItemId);
+        return await cartRepository.removeCartItem(cartItemId);
     },
 
     async removeManyItems(cartItemIds) {
-        return await cartRepository.removeManyFromCart(cartItemIds);
+        return await cartRepository.removeCartItems(cartItemIds);
     },
 
     async clearCart(userId) {
