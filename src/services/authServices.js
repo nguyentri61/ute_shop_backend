@@ -34,6 +34,7 @@ export const getProfileById = async (id) => {
       phone: true,
       address: true,
       gender: true,
+      role: true,
     },
   });
   return user;

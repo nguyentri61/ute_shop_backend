@@ -3,6 +3,8 @@ import {
   getOrderItemByOrderId,
   checkOutCODService,
   cancelOrder,
+  updateOrderStatusService,
+  getAllOrders,
 } from "../services/orderServices.js";
 import { cartService } from "../services/cartServices.js";
 import { successResponse, errorResponse } from "../utils/response.js";
@@ -79,5 +81,41 @@ export const cancel = async (req, res) => {
     res.json({ message: "Xử lý hủy đơn hàng thành công", order: result });
   } catch (e) {
     res.status(400).json({ message: e.message });
+  }
+};
+
+export const updateOrderStatus = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+    
+    if (!orderId) {
+      return errorResponse(res, "Chưa truyền OrderId", 400);
+    }
+    
+    if (!status) {
+      return errorResponse(res, "Chưa truyền trạng thái mới", 400);
+    }
+    
+    // Kiểm tra xem status có hợp lệ không (thuộc enum OrderStatus)
+    const validStatuses = ['NEW', 'CONFIRMED', 'PREPARING', 'SHIPPING', 'DELIVERED', 'CANCELLED', 'CANCEL_REQUEST'];
+    if (!validStatuses.includes(status)) {
+      return errorResponse(res, "Trạng thái không hợp lệ", 400);
+    }
+    
+    const result = await updateOrderStatusService(orderId, status);
+    return successResponse(res, "Cập nhật trạng thái đơn hàng thành công", result);
+  } catch (err) {
+    return errorResponse(res, err.message, 500);
+  }
+};
+
+// Controller lấy tất cả đơn hàng (dành cho admin)
+export const allOrders = async (req, res) => {
+  try {
+    const orders = await getAllOrders();
+    return successResponse(res, "Lấy danh sách tất cả đơn hàng thành công", orders);
+  } catch (err) {
+    return errorResponse(res, err.message, 500);
   }
 };

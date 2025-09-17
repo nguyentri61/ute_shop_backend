@@ -9,6 +9,7 @@ import {
   createOrderItems,
   findOrderById,
   updateOrderStatus,
+  findAllOrders,
 } from "../repositories/orderRepository.js";
 import { cartRepository } from "../repositories/cartRepository.js";
 
@@ -95,4 +96,60 @@ export const cancelOrder = async (orderId, userId) => {
   }
 
   throw new Error("Không thể hủy đơn hàng ở trạng thái hiện tại");
+};
+
+// Cập nhật trạng thái đơn hàng (dành cho admin)
+export const updateOrderStatusService = async (orderId, newStatus) => {
+  // Kiểm tra đơn hàng tồn tại
+  const order = await findOrderById(orderId);
+  if (!order) {
+    throw new Error("Không tìm thấy đơn hàng");
+  }
+  
+  // Kiểm tra logic chuyển trạng thái
+  const currentStatus = order.status;
+  
+  // Một số quy tắc chuyển trạng thái (có thể điều chỉnh theo yêu cầu)
+  if (currentStatus === "DELIVERED" && newStatus !== "DELIVERED") {
+    throw new Error("Đơn hàng đã giao thành công không thể thay đổi trạng thái");
+  }
+  
+  if (currentStatus === "CANCELLED" && newStatus !== "CANCELLED") {
+    throw new Error("Đơn hàng đã hủy không thể thay đổi trạng thái");
+  }
+  
+  // Cập nhật trạng thái
+  return await updateOrderStatus(orderId, newStatus);
+};
+
+// Lấy tất cả đơn hàng (dành cho admin)
+export const getAllOrders = async () => {
+  const orders = await findAllOrders();
+  
+  return orders.map((order) => ({
+    id: order.id,
+    status: order.status,
+    createdAt: order.createdAt,
+    total: order.total,
+    address: order.address,
+    phone: order.phone,
+    user: {
+      id: order.user?.id,
+      email: order.user?.email,
+      fullName: order.user?.fullName,
+      phone: order.user?.phone,
+    },
+    items: order.items.map((item) => ({
+      id: item.id,
+      quantity: item.quantity,
+      price: item.price,
+      product: {
+        id: item.variant?.product?.id,
+        name: item.variant?.product?.name,
+        price: item.variant?.product?.price,
+        discountPrice: item.variant?.product?.discountPrice,
+        image: item.variant?.product?.productImage?.[0]?.url || null,
+      },
+    })),
+  }));
 };

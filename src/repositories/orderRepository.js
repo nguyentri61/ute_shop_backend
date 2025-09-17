@@ -90,6 +90,44 @@ export const updateOrderStatus = (orderId, newStatus, client = prisma) => {
 };
 
 // Tìm đơn hàng theo ID (kèm items và product)
+// Lấy tất cả đơn hàng (cho admin)
+export const findAllOrders = async (client = prisma) => {
+  const orders = await client.order.findMany({
+    include: {
+      items: {
+        include: {
+          variant: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true,
+                  discountPrice: true,
+                  productImage: {
+                    take: 1,
+                    select: { url: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return orders;
+};
+
 export const findOrderById = async (orderId, userId, client = prisma) => {
   const order = await client.order.findUnique({
     where: { id: orderId },

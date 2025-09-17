@@ -30,3 +30,20 @@ export const authMiddleware = (req, res, next) => {
     return res.status(500).json({ code: 500, message: "Server error", data: null });
   }
 };
+
+export const adminMiddleware = (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ code: 401, message: "Unauthorized: authentication required", data: null });
+    }
+
+    if (req.user.role !== 'ADMIN') {
+      return res.status(403).json({ code: 403, message: "Forbidden: admin access required", data: null });
+    }
+
+    next();
+  } catch (err) {
+    console.error("adminMiddleware unexpected error:", err);
+    return res.status(500).json({ code: 500, message: "Server error", data: null });
+  }
+};

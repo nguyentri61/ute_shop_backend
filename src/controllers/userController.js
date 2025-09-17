@@ -1,6 +1,31 @@
-import { updateUserService } from "../services/userServices.js";
+import { updateUserService, getCurrentUserService } from "../services/userServices.js";
 import { errorResponse, successResponse } from "../utils/response.js";
 import Joi from "joi";
+
+export const getCurrentUser = async (req, res) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return errorResponse(res, "Unauthorized", 401);
+        }
+
+        const result = await getCurrentUserService(userId);
+        return successResponse(res, "Lấy thông tin người dùng thành công", result.user, 200);
+    } catch (err) {
+        console.error("getCurrentUser error:", err);
+
+        // Xác định status code phù hợp
+        let statusCode = 500;
+        let errorMessage = "Internal server error";
+
+        if (err.message.includes("không tìm thấy") || err.message.includes("not found")) {
+            statusCode = 404;
+            errorMessage = err.message;
+        }
+
+        return errorResponse(res, errorMessage, statusCode);
+    }
+};
 
 // Schema validation cải tiến
 const updateSchema = Joi.object({

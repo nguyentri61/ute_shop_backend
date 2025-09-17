@@ -3,6 +3,30 @@ import validator from "validator"; // For phone number validation
 
 const prisma = new PrismaClient();
 
+export const getCurrentUserService = async (userId) => {
+    // Kiểm tra user có tồn tại không
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            id: true,
+            email: true,
+            fullName: true,
+            address: true,
+            phone: true,
+            gender: true,
+            role: true,
+            verified: true,
+            createdAt: true,
+        },
+    });
+
+    if (!user) {
+        throw new Error("Không tìm thấy người dùng");
+    }
+
+    return { user };
+};
+
 export const updateUserService = async (userId, updateData) => {
     // Validate input data
     if (updateData.phone && !validator.isMobilePhone(updateData.phone, "any")) {
