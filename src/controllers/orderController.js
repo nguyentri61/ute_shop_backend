@@ -2,12 +2,12 @@ import {
   getMyOrders,
   getOrderItemByOrderId,
   checkOutCODService,
+  cancelOrder,
 } from "../services/orderServices.js";
 import { cartService } from "../services/cartServices.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 
 export const myOrders = async (req, res) => {
-  console.log("Hẹ hẹ");
   try {
     const userId = req.user?.id;
     console.log(userId);
@@ -68,5 +68,16 @@ export const checkOutCOD = async (req, res) => {
     return successResponse(res, "Check out thành công", { order, orderItems });
   } catch (err) {
     return errorResponse(res, err.message, 500);
+  }
+};
+
+export const cancel = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const userId = req.user?.id;
+    const result = await cancelOrder(orderId, userId);
+    res.json({ message: "Xử lý hủy đơn hàng thành công", order: result });
+  } catch (e) {
+    res.status(400).json({ message: e.message });
   }
 };

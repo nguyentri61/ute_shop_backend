@@ -71,7 +71,7 @@ export const createOrder = (userId, address, phone, total, client = prisma) => {
 };
 
 export const createOrderItems = (orderId, cartItems, client = prisma) => {
-  return client.orderitem.createMany({
+  return client.orderItem.createMany({
     data: cartItems.map((c) => ({
       orderId,
       variantId: c.variantId,
@@ -79,4 +79,48 @@ export const createOrderItems = (orderId, cartItems, client = prisma) => {
       price: c.variant.price,
     })),
   });
+};
+
+// Cập nhật trạng thái đơn hàng
+export const updateOrderStatus = (orderId, newStatus, client = prisma) => {
+  return client.order.update({
+    where: { id: orderId },
+    data: { status: newStatus },
+  });
+};
+
+// Tìm đơn hàng theo ID (kèm items và product)
+export const findOrderById = async (orderId, userId, client = prisma) => {
+  const order = await client.order.findUnique({
+    where: { id: orderId },
+    include: {
+      items: {
+        include: {
+          variant: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true,
+                  discountPrice: true,
+                  productImage: {
+                    take: 1,
+                    select: { url: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // Nếu có userId thì check xem có đúng là chủ đơn không
+  if (order && userId && order.userId !== userId) {
+    return null; // không phải của user này
+  }
+
+  return order;
 };

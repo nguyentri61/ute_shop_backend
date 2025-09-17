@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-
+import { differenceInMinutes } from "date-fns";
 const prisma = new PrismaClient();
 
 import {
@@ -7,6 +7,8 @@ import {
   findOrderItemByOrderId,
   createOrder,
   createOrderItems,
+  findOrderById,
+  updateOrderStatus,
 } from "../repositories/orderRepository.js";
 import { cartRepository } from "../repositories/cartRepository.js";
 
@@ -61,4 +63,36 @@ export const checkOutCODService = async (
 
     return { order, orderItems };
   });
+};
+
+export const cancelOrder = async (orderId, userId) => {
+  const order = await findOrderById(orderId, userId);
+  if (!order) throw new Error("Không tìm thấy đơn hàng của bạn");
+
+  // Nếu đơn đã bị hủy hoặc giao xong
+  if (["CANCELLED", "DELIVERED"].includes(order.status)) {
+    throw new Error("Đơn hàng không thể hủy");
+  }
+
+  const minutesSinceCreated = differenceInMinutes(new Date(), order.createdAt);
+
+  // Nếu trong 30 phút đầu => cho phép hủy trực tiếp
+  if (
+    minutesSinceCreated <= 30 &&
+    ["NEW", "CONFIRMED"].includes(order.status)
+  ) {
+    return await updateOrderStatus(order.id, "CANCELLED");
+  }
+
+  // Nếu đang chuẩn bị hàng => gửi yêu cầu hủy
+  if (order.status === "PREPARING") {
+    return await updateOrderStatus(order.id, "CANCEL_REQUEST");
+  }
+
+  // Nếu đang giao thì không cho phép
+  if (order.status === "SHIPPING") {
+    throw new Error("Đơn hàng đang giao, không thể hủy");
+  }
+
+  throw new Error("Không thể hủy đơn hàng ở trạng thái hiện tại");
 };

@@ -7,6 +7,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum OrderStatus {
+  NEW             // đơn hàng mới (vừa đặt)
+  CONFIRMED       // đã xác nhận (thủ công hoặc tự động 30 phút sau)
+  PREPARING       // shop đang chuẩn bị hàng (bước 3)
+  SHIPPING        // đang giao hàng
+  DELIVERED       // đã giao thành công
+  CANCELLED       // đã hủy
+  CANCEL_REQUEST  // yêu cầu hủy gửi tới shop (khi ở PREPARING mà user muốn hủy)
+}
+
 model category {
   id        String    @id @default(uuid())
   name      String
@@ -16,16 +26,16 @@ model category {
 }
 
 model order {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   userId    String
   address   String
   phone     String
-  createdAt DateTime @default(now())
-  total     Float    @default(0)
-  status    String   @default("pending")
+  createdAt DateTime  @default(now())
+  total     Float     @default(0)
+  status    OrderStatus @default(NEW)
 
   user  user        @relation(fields: [userId], references: [id])
-  items orderItem[] // 1 order có nhiều orderitem
+  items orderItem[]
 }
 
 model orderItem {
