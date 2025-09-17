@@ -33,7 +33,7 @@ export const orderItemByOrderId = async (req, res) => {
     }
 
     const orderItems = await getOrderItemByOrderId(orderId);
-    return successResponse(res, "Danh sách sản phẩm của order này");
+    return successResponse(res, "Danh sách sản phẩm của order này", orderItems);
   } catch (err) {
     return errorResponse(res, err.message, 500);
   }
@@ -69,6 +69,7 @@ export const checkOutCOD = async (req, res) => {
 
     return successResponse(res, "Check out thành công", { order, orderItems });
   } catch (err) {
+    console.error(err);
     return errorResponse(res, err.message, 500);
   }
 };

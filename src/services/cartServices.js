@@ -11,26 +11,28 @@ export const cartService = {
     async getSelectedCart(cartItemIds, shippingVoucher = null, productVoucher = null) {
         const cartItems = await cartRepository.getCartByIds(cartItemIds);
 
+        if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+            throw new Error("Không tìm thấy sản phẩm trong giỏ hàng");
+        }
+
         const items = cartItems.map(cartItemDto);
 
-        // Tính subtotal từ sản phẩm
         const subTotal = cartItems.reduce((sum, item) => {
+            if (!item.variant) {
+                throw new Error(`Sản phẩm ${item.id} không có variant`);
+            }
             const price = item.variant.discountPrice ?? item.variant.price;
             return sum + price * item.quantity;
         }, 0);
 
-        // Tính phí vận chuyển mặc định
         let shippingFee = 30000;
-
         let shippingDiscount = 0;
-        // Áp dụng voucher vận chuyển
         if (shippingVoucher === "FREESHIP") {
             shippingDiscount = shippingFee;
         } else if (shippingVoucher === "SHIP10K") {
             shippingDiscount = 10000;
         }
 
-        // Áp dụng voucher sản phẩm
         let productDiscount = 0;
         if (productVoucher === "SALE10") {
             productDiscount = subTotal * 0.1;
@@ -50,8 +52,7 @@ export const cartService = {
                 total,
             },
         };
-    }
-    ,
+    },
 
     async getItemById(cartItemId) {
         return await cartRepository.findById(cartItemId);

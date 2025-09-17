@@ -20,6 +20,8 @@ export const cartController = {
                 return errorResponse(res, "Chưa có sản phẩm nào được chọn", 400);
             }
 
+            console.log("Selected IDs:", cartItemIds);
+
             const result = await cartService.getSelectedCart(
                 cartItemIds,
                 shippingVoucher,
@@ -28,6 +30,7 @@ export const cartController = {
 
             return successResponse(res, "Lấy giỏ hàng thành công", result);
         } catch (err) {
+            console.error(err);
             return errorResponse(res, err.message, 500);
         }
     },
