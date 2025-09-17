@@ -22,15 +22,15 @@ CREATE TABLE `order` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `orderitem` (
+CREATE TABLE `orderItem` (
     `id` VARCHAR(191) NOT NULL,
     `order_id` VARCHAR(191) NOT NULL,
     `variantId` VARCHAR(191) NOT NULL,
     `quantity` INTEGER NOT NULL,
     `price` DOUBLE NOT NULL DEFAULT 0,
 
-    INDEX `orderitem_order_id_idx`(`order_id`),
-    INDEX `orderitem_variantId_idx`(`variantId`),
+    INDEX `orderItem_order_id_idx`(`order_id`),
+    INDEX `orderItem_variantId_idx`(`variantId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -51,7 +51,7 @@ CREATE TABLE `product` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `productimage` (
+CREATE TABLE `productImage` (
     `id` VARCHAR(191) NOT NULL,
     `url` VARCHAR(191) NOT NULL,
     `productId` VARCHAR(191) NOT NULL,
@@ -110,16 +110,16 @@ CREATE TABLE `user` (
 ALTER TABLE `order` ADD CONSTRAINT `order_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `orderitem` ADD CONSTRAINT `orderitem_order_id_fkey` FOREIGN KEY (`order_id`) REFERENCES `order`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `orderItem` ADD CONSTRAINT `orderItem_order_id_fkey` FOREIGN KEY (`order_id`) REFERENCES `order`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `orderitem` ADD CONSTRAINT `orderitem_variantId_fkey` FOREIGN KEY (`variantId`) REFERENCES `productVariant`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `orderItem` ADD CONSTRAINT `orderItem_variantId_fkey` FOREIGN KEY (`variantId`) REFERENCES `productVariant`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `product` ADD CONSTRAINT `Product_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `category`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `productimage` ADD CONSTRAINT `ProductImage_productId_fkey` FOREIGN KEY (`productId`) REFERENCES `product`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `productImage` ADD CONSTRAINT `ProductImage_productId_fkey` FOREIGN KEY (`productId`) REFERENCES `product`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `productVariant` ADD CONSTRAINT `productVariant_productId_fkey` FOREIGN KEY (`productId`) REFERENCES `product`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
