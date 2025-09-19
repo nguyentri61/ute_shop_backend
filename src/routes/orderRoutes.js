@@ -6,7 +6,11 @@ import {
   updateOrderStatus,
   allOrders,
 } from "../controllers/orderController.js";
-import { authMiddleware, adminMiddleware } from "../middlewares/authMiddlewares.js";
+import {
+  authMiddleware,
+  adminMiddleware,
+} from "../middlewares/authMiddlewares.js";
+import { createReview } from "../controllers/productController.js";
 
 const router = express.Router();
 

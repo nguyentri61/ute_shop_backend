@@ -1,5 +1,6 @@
 const { ProductDetailDTO } = require("../dto/product.dto");
 const productRepository = require("../repositories/productRepository");
+const { v4: uuidv4 } = require("uuid");
 
 async function getAllProducts() {
   return productRepository.findAllProducts();
@@ -46,6 +47,33 @@ async function getProductByIdService(id) {
   return ProductDetailDTO(product);
 }
 
+//Đánh giá sản phẩm
+async function createReviewService({ userId, productId, rating, comment }) {
+  const orderItem = await productRepository.findDeliveredOrderItem(
+    userId,
+    productId
+  );
+  if (!orderItem) {
+    throw new Error("Bạn chưa mua sản phẩm này hoặc đơn chưa giao thành công");
+  }
+
+  const review = await productRepository.createReview({
+    userId,
+    productId,
+    rating,
+    comment,
+  });
+
+  const coupon = await productRepository.createCoupon({
+    code: "REVIEW-" + uuidv4().slice(0, 8).toUpperCase(),
+    discount: 10,
+    expiredAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    userId,
+  });
+
+  return { review, coupon };
+}
+
 module.exports = {
   getPaginatedProducts,
   getAllProducts,
@@ -54,4 +82,5 @@ module.exports = {
   getMostViewedProducts,
   getTopDiscountProducts,
   getProductByIdService,
+  createReviewService,
 };

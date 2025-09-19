@@ -6,6 +6,7 @@ import {
   getMostViewedProducts,
   getTopDiscountProducts,
   getProductByIdService,
+  createReviewService,
 } from "../services/productServices.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 
@@ -99,6 +100,25 @@ export const getProductById = async (req, res) => {
     return successResponse(res, "Lấy chi tiết sản phẩm thành công", product);
   } catch (err) {
     console.error(err);
+    return errorResponse(res, err.message || "Lỗi server", 500);
+  }
+};
+
+export const createReview = async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const userId = req.user.id;
+    const { rating, comment } = req.body;
+
+    const review = await createReviewService({
+      productId,
+      userId,
+      rating,
+      comment,
+    });
+    console.log("Đánh giá");
+    return successResponse(res, "Đánh giá sản phẩm thành côngg", review);
+  } catch (err) {
     return errorResponse(res, err.message || "Lỗi server", 500);
   }
 };

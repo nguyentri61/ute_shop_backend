@@ -66,7 +66,7 @@ model product {
   category      category         @relation(fields: [categoryId], references: [id], map: "Product_categoryId_fkey")
   productImage  productImage[]
   variants      productVariant[]
-
+ reviews       review[]
   @@index([categoryId], map: "Product_categoryId_fkey")
 }
 
@@ -127,9 +127,38 @@ model user {
   address   String?
   fullName  String?
   gender    String?
-  phone     String?
+  phone    String?
   role      UserRole  @default(USER)
 
   orders order[]
   cart   cartItem[]
+  reviews  review[]   
+  coupons  coupon[]
+}
+
+model review {
+  id         String   @id @default(uuid())
+  userId     String
+  productId  String
+  rating     Int       // số sao (1-5)
+  comment    String?   // nội dung bình luận
+  createdAt  DateTime  @default(now())
+
+  user    user    @relation(fields: [userId], references: [id])
+  product product @relation(fields: [productId], references: [id])
+
+  @@index([userId])
+  @@index([productId])
+}
+
+model coupon {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  discount    Float    // % giảm giá hoặc số tiền
+  expiredAt   DateTime
+  userId      String   // mã giảm giá gắn cho user nào
+
+  user user @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }

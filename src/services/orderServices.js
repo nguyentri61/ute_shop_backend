@@ -25,7 +25,7 @@ export const getMyOrders = async (userId) => {
     items: order.items.map((item) => ({
       id: item.id,
       quantity: item.quantity,
-      price: item.price,
+      price: item.variant?.product?.discountPrice,
       product: {
         id: item.variant?.product?.id,
         name: item.variant?.product?.name,
@@ -105,19 +105,21 @@ export const updateOrderStatusService = async (orderId, newStatus) => {
   if (!order) {
     throw new Error("Không tìm thấy đơn hàng");
   }
-  
+
   // Kiểm tra logic chuyển trạng thái
   const currentStatus = order.status;
-  
+
   // Một số quy tắc chuyển trạng thái (có thể điều chỉnh theo yêu cầu)
   if (currentStatus === "DELIVERED" && newStatus !== "DELIVERED") {
-    throw new Error("Đơn hàng đã giao thành công không thể thay đổi trạng thái");
+    throw new Error(
+      "Đơn hàng đã giao thành công không thể thay đổi trạng thái"
+    );
   }
-  
+
   if (currentStatus === "CANCELLED" && newStatus !== "CANCELLED") {
     throw new Error("Đơn hàng đã hủy không thể thay đổi trạng thái");
   }
-  
+
   // Cập nhật trạng thái
   return await updateOrderStatus(orderId, newStatus);
 };
@@ -125,7 +127,7 @@ export const updateOrderStatusService = async (orderId, newStatus) => {
 // Lấy tất cả đơn hàng (dành cho admin)
 export const getAllOrders = async () => {
   const orders = await findAllOrders();
-  
+
   return orders.map((order) => ({
     id: order.id,
     status: order.status,
@@ -142,7 +144,7 @@ export const getAllOrders = async () => {
     items: order.items.map((item) => ({
       id: item.id,
       quantity: item.quantity,
-      price: item.price,
+      price: item.variant?.product?.discountPrice,
       product: {
         id: item.variant?.product?.id,
         name: item.variant?.product?.name,

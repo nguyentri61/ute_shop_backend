@@ -98,7 +98,8 @@ export const findProductById = async (id) => {
     include: {
       category: true,
       productImage: true,
-      variants: {   // dùng đúng tên field trong schema
+      variants: {
+        // dùng đúng tên field trong schema
         select: {
           id: true,
           size: true,
@@ -111,4 +112,22 @@ export const findProductById = async (id) => {
     },
   });
 };
+// Kiểm tra order đã mua thành công
+export const findDeliveredOrderItem = async (userId, productId) => {
+  return prisma.orderItem.findFirst({
+    where: {
+      variant: { productId },
+      order: { userId, status: "DELIVERED" },
+    },
+  });
+};
 
+// Tạo review
+export const createReview = async (data) => {
+  return prisma.review.create({ data });
+};
+
+// Tạo coupon
+export const createCoupon = async (data) => {
+  return prisma.coupon.create({ data });
+};
