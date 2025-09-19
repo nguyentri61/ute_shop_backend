@@ -36,6 +36,7 @@ model order {
 
   user  user        @relation(fields: [userId], references: [id])
   items orderItem[]
+  coupons coupon[]
 }
 
 model orderItem {
@@ -66,7 +67,7 @@ model product {
   category      category         @relation(fields: [categoryId], references: [id], map: "Product_categoryId_fkey")
   productImage  productImage[]
   variants      productVariant[]
- reviews       review[]
+  reviews       review[]
   @@index([categoryId], map: "Product_categoryId_fkey")
 }
 
@@ -151,14 +152,25 @@ model review {
   @@index([productId])
 }
 
+enum CouponType {
+  SHIPPING
+  PRODUCT
+}
+
 model coupon {
   id          String   @id @default(uuid())
-  code        String   @unique
+  code        String   
+  type        CouponType   @default(PRODUCT)
+  description String
   discount    Float    // % giảm giá hoặc số tiền
+  minOrderValue Float
   expiredAt   DateTime
-  userId      String   // mã giảm giá gắn cho user nào
+  orderId     String? 
+  userId      String?   // mã giảm giá gắn cho user nào
 
-  user user @relation(fields: [userId], references: [id])
+  order order? @relation(fields: [orderId], references: [id])
+  user user? @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([orderId])
 }

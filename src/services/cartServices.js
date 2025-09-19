@@ -1,5 +1,8 @@
 import { cartRepository } from "../repositories/cartRepository.js";
 import { cartItemDto } from "../dto/cartItem.dto.js";
+import { findCouponsByUserId } from "../repositories/couponRepository.js";
+import { validate } from "uuid";
+import { validateCoupon } from "./couponService.js";
 
 export const cartService = {
     async getCart(userId) {
@@ -8,7 +11,7 @@ export const cartService = {
         return cartItems.map(cartItemDto);
     },
 
-    async getSelectedCart(cartItemIds, shippingVoucher = null, productVoucher = null) {
+    async getSelectedCart(cartItemIds, shippingVoucher = null, productVoucher = null, userId) {
         const cartItems = await cartRepository.getCartByIds(cartItemIds);
 
         if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
@@ -26,18 +29,34 @@ export const cartService = {
         }, 0);
 
         let shippingFee = 30000;
-        let shippingDiscount = 0;
-        if (shippingVoucher === "FREESHIP") {
-            shippingDiscount = shippingFee;
-        } else if (shippingVoucher === "SHIP10K") {
-            shippingDiscount = 10000;
+
+        const coupons = await findCouponsByUserId(userId);
+
+        // Kiểm tra và lấy thông tin voucher
+        const shippingCoupon = await validateCoupon(shippingVoucher, userId);
+        const productCoupon = await validateCoupon(productVoucher, subTotal, userId);
+
+        console.log("Shipping Coupon:", shippingCoupon);
+        console.log("Product Coupon:", productCoupon);
+        // Gán giá trị discount (nếu có, nếu không thì = 0)
+        let shippingDiscount = shippingCoupon?.discount ?? 0;
+        let productDiscount = productCoupon?.discount ?? 0;
+
+        if (shippingDiscount < 1) {
+            shippingDiscount = Math.floor(shippingFee * shippingDiscount);
         }
 
-        let productDiscount = 0;
-        if (productVoucher === "SALE10") {
-            productDiscount = subTotal * 0.1;
-        } else if (productVoucher === "SALE50K") {
-            productDiscount = 50000;
+        if (productDiscount < 1) {
+            productDiscount = Math.floor(subTotal * productDiscount);
+        }
+
+        // Giảm giá không được vượt quá tổng tiền
+        if (shippingDiscount > shippingFee) {
+            shippingDiscount = shippingFee;
+        }
+
+        if (productDiscount > subTotal) {
+            productDiscount = subTotal;
         }
 
         const total = subTotal + shippingFee - shippingDiscount - productDiscount;

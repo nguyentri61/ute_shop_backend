@@ -66,7 +66,10 @@ async function createReviewService({ userId, productId, rating, comment }) {
 
   const coupon = await productRepository.createCoupon({
     code: "REVIEW-" + uuidv4().slice(0, 8).toUpperCase(),
-    discount: 10,
+    type: "PRODUCT",
+    description: "Mã giảm giá 15% cho lần mua tiếp theo",
+    minOrderValue: 0,
+    discount: 15000,
     expiredAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     userId,
   });

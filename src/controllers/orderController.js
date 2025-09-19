@@ -59,12 +59,18 @@ export const checkOutCOD = async (req, res) => {
       productVoucher
     );
 
+    console.log("shippingVoucher", shippingVoucher);
+    console.log("productVoucher", productVoucher);
+    console.log("Result", result);
+
     const { order, orderItems } = await checkOutCODService(
       userId,
       address,
       phone,
       cartItemIds,
-      result.summary.total
+      result.summary.total,
+      shippingVoucher,
+      productVoucher
     );
 
     return successResponse(res, "Check out thành công", { order, orderItems });
@@ -89,21 +95,21 @@ export const updateOrderStatus = async (req, res) => {
   try {
     const { orderId } = req.params;
     const { status } = req.body;
-    
+
     if (!orderId) {
       return errorResponse(res, "Chưa truyền OrderId", 400);
     }
-    
+
     if (!status) {
       return errorResponse(res, "Chưa truyền trạng thái mới", 400);
     }
-    
+
     // Kiểm tra xem status có hợp lệ không (thuộc enum OrderStatus)
     const validStatuses = ['NEW', 'CONFIRMED', 'PREPARING', 'SHIPPING', 'DELIVERED', 'CANCELLED', 'CANCEL_REQUEST'];
     if (!validStatuses.includes(status)) {
       return errorResponse(res, "Trạng thái không hợp lệ", 400);
     }
-    
+
     const result = await updateOrderStatusService(orderId, status);
     return successResponse(res, "Cập nhật trạng thái đơn hàng thành công", result);
   } catch (err) {

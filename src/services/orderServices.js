@@ -12,6 +12,7 @@ import {
   findAllOrders,
 } from "../repositories/orderRepository.js";
 import { cartRepository } from "../repositories/cartRepository.js";
+import { updateCouponOrderId } from "../repositories/couponRepository.js";
 
 export const getMyOrders = async (userId) => {
   console.log("Service: ", userId);
@@ -47,11 +48,18 @@ export const checkOutCODService = async (
   adress,
   phone,
   cartItemIds,
-  total
+  total,
+  shippingVoucher,
+  productVoucher
 ) => {
   return await prisma.$transaction(async (tx) => {
     const order = await createOrder(userId, adress, phone, total, tx);
     const cartItems = await cartRepository.getCartByIds(cartItemIds, tx);
+    if (shippingVoucher)
+      await updateCouponOrderId(shippingVoucher, order.id, tx);
+
+    if (productVoucher)
+      await updateCouponOrderId(productVoucher, order.id, tx);
 
     // Nếu giỏ hàng rỗng thì rollback
     if (!cartItems || cartItems.length === 0) {

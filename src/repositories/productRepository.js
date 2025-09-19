@@ -131,3 +131,5 @@ export const createReview = async (data) => {
 export const createCoupon = async (data) => {
   return prisma.coupon.create({ data });
 };
+
+

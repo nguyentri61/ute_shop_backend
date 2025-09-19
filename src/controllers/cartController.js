@@ -14,6 +14,9 @@ export const cartController = {
 
     async getSelectedCart(req, res) {
         try {
+            const userId = req.user?.id;
+            if (!userId) return errorResponse(res, "Unauthorized", 401);
+
             const { cartItemIds, shippingVoucher, productVoucher } = req.body;
 
             if (!cartItemIds || !cartItemIds.length) {
@@ -25,7 +28,8 @@ export const cartController = {
             const result = await cartService.getSelectedCart(
                 cartItemIds,
                 shippingVoucher,
-                productVoucher
+                productVoucher, 
+                userId
             );
 
             return successResponse(res, "Lấy giỏ hàng thành công", result);

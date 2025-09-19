@@ -15,7 +15,7 @@ export const cartRepository = {
                 id: true,
                 name: true,
                 description: true,
-                productImage: {   // <-- sửa ở đây
+                productImage: {
                   take: 1,
                   select: { url: true }
                 },

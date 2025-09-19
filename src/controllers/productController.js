@@ -119,6 +119,15 @@ export const createReview = async (req, res) => {
     console.log("Đánh giá");
     return successResponse(res, "Đánh giá sản phẩm thành côngg", review);
   } catch (err) {
+    console.error(err);
     return errorResponse(res, err.message || "Lỗi server", 500);
   }
 };
+
+// export const getMyCoupons = async (req, res) => {
+//   try {
+//     const userId = req.user?.id;
+//     if (!userId) {
+//       return errorResponse(res, "Người dùng chưa đăng nhập", 401);
+//     }
+
