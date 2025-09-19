@@ -26,7 +26,7 @@ export const getMyOrders = async (userId) => {
     items: order.items.map((item) => ({
       id: item.id,
       quantity: item.quantity,
-      price: item.variant?.product?.discountPrice,
+      price: item.price,
       product: {
         id: item.variant?.product?.id,
         name: item.variant?.product?.name,
@@ -152,7 +152,7 @@ export const getAllOrders = async () => {
     items: order.items.map((item) => ({
       id: item.id,
       quantity: item.quantity,
-      price: item.variant?.product?.discountPrice,
+      price: item.price,
       product: {
         id: item.variant?.product?.id,
         name: item.variant?.product?.name,
