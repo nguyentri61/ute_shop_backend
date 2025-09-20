@@ -68,6 +68,8 @@ model product {
   productImage  productImage[]
   variants      productVariant[]
   reviews       review[]
+  favorites     favorite[]
+  recentlyViewed recentlyViewed[]
   @@index([categoryId], map: "Product_categoryId_fkey")
 }
 
@@ -135,6 +137,8 @@ model user {
   cart   cartItem[]
   reviews  review[]   
   coupons  coupon[]
+  favorites favorite[]
+  recentlyViewed recentlyViewed[]
 }
 
 model review {
@@ -173,4 +177,32 @@ model coupon {
 
   @@index([userId])
   @@index([orderId])
+}
+
+model favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    user    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId]) // 1 user chỉ có thể thích 1 sản phẩm 1 lần
+  @@index([userId])
+  @@index([productId])
+}
+
+model recentlyViewed {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  viewedAt  DateTime @default(now())
+
+  user    user    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([productId])
+  @@index([viewedAt])
 }

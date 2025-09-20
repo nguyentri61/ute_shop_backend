@@ -7,6 +7,7 @@ import {
   getTopDiscountProducts,
   getProductByIdService,
   createReviewService,
+  getSimilarProductsService,
 } from "../services/productServices.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 
@@ -118,6 +119,23 @@ export const createReview = async (req, res) => {
     });
     console.log("Đánh giá");
     return successResponse(res, "Đánh giá sản phẩm thành côngg", review);
+  } catch (err) {
+    console.error(err);
+    return errorResponse(res, err.message || "Lỗi server", 500);
+  }
+};
+
+export const getSimilarProducts = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const limit = parseInt(req.query.limit) || 8;
+
+    if (!id) {
+      return errorResponse(res, "Thiếu id sản phẩm", 400);
+    }
+
+    const similarProducts = await getSimilarProductsService(id, limit);
+    return successResponse(res, "Lấy sản phẩm tương tự thành công", similarProducts);
   } catch (err) {
     console.error(err);
     return errorResponse(res, err.message || "Lỗi server", 500);

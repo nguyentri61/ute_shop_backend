@@ -132,4 +132,39 @@ export const createCoupon = async (data) => {
   return prisma.coupon.create({ data });
 };
 
+// Lấy sản phẩm tương tự
+export const findSimilarProducts = async (categoryId, excludeProductId, limit) => {
+  return prisma.product.findMany({
+    where: {
+      categoryId: categoryId,
+      id: {
+        not: excludeProductId,
+      },
+    },
+    take: limit,
+    include: {
+      productImage: true,
+      category: true,
+      variants: {
+        select: {
+          id: true,
+          size: true,
+          color: true,
+          stock: true,
+          price: true,
+          discountPrice: true,
+        },
+      },
+      reviews: {
+        select: {
+          rating: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
+
 
