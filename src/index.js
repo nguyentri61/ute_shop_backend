@@ -94,7 +94,7 @@ console.log("Using basePath:", basePath);
         app.use(`${basePath}/product-variant`, productVariantRoutes);
         app.use(`${basePath}/coupons`, couponRoutes);
         app.use(`${basePath}/favorites`, favoriteRoutes);
-        app.use(`${basePath}/products/recently-viewed`, recentlyViewedRoutes);
+        app.use(`${basePath}/recently-viewed`, recentlyViewedRoutes);
 
 
         app.use("/public", express.static(path.join(__dirname, "../public")));

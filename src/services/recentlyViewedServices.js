@@ -33,8 +33,8 @@ export const getRecentlyViewedByUserId = async (userId, limit = 8) => {
     const productsWithRating = recentlyViewed.map((item) => {
       const product = item.product;
       const ratings = product.reviews.map((review) => review.rating);
-      const averageRating = ratings.length > 0 
-        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
+      const averageRating = ratings.length > 0
+        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
         : 0;
 
       return {
