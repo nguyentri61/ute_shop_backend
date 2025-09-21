@@ -9,7 +9,6 @@ export const getRecentlyViewed = async (req, res) => {
   try {
     const userId = req.user.id;
     const limit = parseInt(req.query.limit) || 8;
-    
     const recentlyViewed = await getRecentlyViewedByUserId(userId, limit);
     return successResponse(res, "Lấy danh sách đã xem thành công", recentlyViewed);
   } catch (error) {
