@@ -91,7 +91,6 @@ export const findTopDiscountProducts = async (limit) => {
 
   return sorted.slice(0, limit);
 };
-
 export const findProductById = async (id) => {
   return prisma.product.findUnique({
     where: { id },
@@ -99,7 +98,6 @@ export const findProductById = async (id) => {
       category: true,
       productImage: true,
       variants: {
-        // dùng đúng tên field trong schema
         select: {
           id: true,
           size: true,
@@ -107,8 +105,12 @@ export const findProductById = async (id) => {
           stock: true,
           price: true,
           discountPrice: true,
+          orderItems: {
+            select: { quantity: true }, // lấy số lượng bán theo variant
+          },
         },
       },
+      reviews: { select: { id: true } }, // chỉ cần đếm review
     },
   });
 };
