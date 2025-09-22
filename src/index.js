@@ -81,6 +81,8 @@ console.log("Using basePath:", basePath);
         const { default: cartRoutes } = await import("./routes/cartRoutes.js");
         const { default: productVariantRoutes } = await import("./routes/productVariantRoutes.js");
         const { default: couponRoutes } = await import("./routes/couponRoutes.js");
+        const { default: favoriteRoutes } = await import("./routes/favoriteRoutes.js");
+        const { default: recentlyViewedRoutes } = await import("./routes/recentlyViewedRoutes.js");
 
 
         app.use(`${basePath}/auth`, authRoutes);
@@ -91,6 +93,8 @@ console.log("Using basePath:", basePath);
         app.use(`${basePath}/carts`, cartRoutes);
         app.use(`${basePath}/product-variant`, productVariantRoutes);
         app.use(`${basePath}/coupons`, couponRoutes);
+        app.use(`${basePath}/favorites`, favoriteRoutes);
+        app.use(`${basePath}/recently-viewed`, recentlyViewedRoutes);
 
 
         app.use("/public", express.static(path.join(__dirname, "../public")));

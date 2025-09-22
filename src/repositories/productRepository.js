@@ -91,7 +91,6 @@ export const findTopDiscountProducts = async (limit) => {
 
   return sorted.slice(0, limit);
 };
-
 export const findProductById = async (id) => {
   return prisma.product.findUnique({
     where: { id },
@@ -99,7 +98,6 @@ export const findProductById = async (id) => {
       category: true,
       productImage: true,
       variants: {
-        // dùng đúng tên field trong schema
         select: {
           id: true,
           size: true,
@@ -107,8 +105,12 @@ export const findProductById = async (id) => {
           stock: true,
           price: true,
           discountPrice: true,
+          orderItems: {
+            select: { quantity: true }, // lấy số lượng bán theo variant
+          },
         },
       },
+      reviews: { select: { id: true } }, // chỉ cần đếm review
     },
   });
 };
@@ -130,6 +132,41 @@ export const createReview = async (data) => {
 // Tạo coupon
 export const createCoupon = async (data) => {
   return prisma.coupon.create({ data });
+};
+
+// Lấy sản phẩm tương tự
+export const findSimilarProducts = async (categoryId, excludeProductId, limit) => {
+  return prisma.product.findMany({
+    where: {
+      categoryId: categoryId,
+      id: {
+        not: excludeProductId,
+      },
+    },
+    take: limit,
+    include: {
+      productImage: true,
+      category: true,
+      variants: {
+        select: {
+          id: true,
+          size: true,
+          color: true,
+          stock: true,
+          price: true,
+          discountPrice: true,
+        },
+      },
+      reviews: {
+        select: {
+          rating: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
 };
 
 

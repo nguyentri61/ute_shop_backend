@@ -77,6 +77,24 @@ async function createReviewService({ userId, productId, rating, comment }) {
   return { review, coupon };
 }
 
+// Lấy sản phẩm tương tự
+async function getSimilarProductsService(productId, limit = 8) {
+  // Lấy thông tin sản phẩm hiện tại
+  const currentProduct = await productRepository.findProductById(productId);
+  if (!currentProduct) {
+    throw new Error("Sản phẩm không tồn tại");
+  }
+
+  // Lấy sản phẩm cùng danh mục, loại trừ sản phẩm hiện tại
+  const similarProducts = await productRepository.findSimilarProducts(
+    currentProduct.categoryId,
+    productId,
+    limit
+  );
+
+  return similarProducts;
+}
+
 module.exports = {
   getPaginatedProducts,
   getAllProducts,
@@ -86,4 +104,5 @@ module.exports = {
   getTopDiscountProducts,
   getProductByIdService,
   createReviewService,
+  getSimilarProductsService,
 };
