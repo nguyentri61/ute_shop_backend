@@ -1,6 +1,7 @@
 const { ProductDetailDTO } = require("../dto/product.dto");
 const productRepository = require("../repositories/productRepository");
 const { v4: uuidv4 } = require("uuid");
+const { notifyAdmin } = require("./notificationService");
 
 async function getAllProducts() {
   return productRepository.findAllProducts();
@@ -72,6 +73,11 @@ async function createReviewService({ userId, productId, rating, comment }) {
     discount: 15000,
     expiredAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     userId,
+  });
+  notifyAdmin({
+    message: `Đã có người dùng đánh giá sản phẩm`,
+    type: "admin",
+    link: `/products/${productId}`,
   });
 
   return { review, coupon };
