@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
+import Fuse from "fuse.js";
 
 // Lấy tất cả sản phẩm
 export const findAllProducts = async (page, limit, skip) => {
@@ -169,4 +170,98 @@ export const findSimilarProducts = async (categoryId, excludeProductId, limit) =
   });
 };
 
+export const findProductsByCategory = async (categoryId, skip, take) => {
+  return prisma.product.findMany({
+    where: { categoryId },
+    skip,
+    take,
+    orderBy: { createdAt: "desc" },
+    include: { productImage: true },
+  });
+}
 
+export const countProductsByCategory = async (categoryId) => {
+  return await prisma.product.count({
+    where: { categoryId }
+  });
+}
+
+export const findProductsByFilters = async (
+  search,
+  category,
+  minPrice,
+  maxPrice,
+  sortDate,
+  sortPrice,
+  skip,
+  take
+) => {
+
+  const min = minPrice !== undefined ? Number(minPrice) : undefined;
+  const max = maxPrice !== undefined ? Number(maxPrice) : undefined;
+
+  // 1. Điều kiện lọc sơ bộ trong Prisma (tránh lấy quá nhiều data)
+  const where = {};
+  if (category) where.categoryId = category;
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    where.OR = [
+      {
+        price: {
+          gte: min ?? 0,
+          lte: max ?? Number.MAX_SAFE_INTEGER,
+        },
+      },
+      {
+        discountPrice: {
+          gte: min ?? 0,
+          lte: max ?? Number.MAX_SAFE_INTEGER,
+        },
+      },
+    ];
+  }
+
+  // 2. Lấy sản phẩm từ DB
+  let products = await prisma.product.findMany({
+    where,
+    include: { productImage: true },
+    orderBy: sortDate ? { createdAt: sortDate } : undefined, // sort sơ bộ theo ngày nếu có
+  });
+
+  // 3. Áp dụng Fuse.js nếu có search text
+  if (search) {
+    const fuse = new Fuse(products, {
+      keys: ["name", "description"], // có thể mở rộng tìm kiếm theo description, tags
+      threshold: 0.3, // 0.0 = khớp chính xác, 1.0 = khớp hết; 0.3 là hợp lý
+    });
+
+    const fuseResults = fuse.search(search);
+    products = fuseResults.map((result) => result.item);
+  }
+
+  // 4. Sắp xếp 
+  if (sortPrice) {
+    products.sort((a, b) =>
+      sortPrice === "asc"
+        ? (a.discountPrice ?? a.price) - (b.discountPrice ?? b.price)
+        : (b.discountPrice ?? b.price) - (a.discountPrice ?? a.price)
+    );
+  }
+
+  if (sortDate) {
+    products.sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return sortDate === "asc" ? dateA - dateB : dateB - dateA;
+    });
+  }
+
+
+  // 5. Phân trang (skip, take)
+  const total = products.length;
+  const paginated = products.slice(skip, skip + take);
+
+  return {
+    total,
+    products: paginated,
+  };
+};

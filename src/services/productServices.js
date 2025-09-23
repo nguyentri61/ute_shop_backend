@@ -95,6 +95,36 @@ async function getSimilarProductsService(productId, limit = 8) {
   return similarProducts;
 }
 
+async function getProductsByCategoryService(categoryId, page = 1, limit = 10) {
+  const skip = (page - 1) * limit;
+  const products = await productRepository.findProductsByCategory(categoryId, skip, limit);
+  const total = await productRepository.countProductsByCategory(categoryId);
+
+  return {
+    products,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  }
+}
+
+const getProductsService = async (search, category, minPrice, maxPrice, sortDate, sortPrice, page, limit) => {
+  const skip = (page - 1) * limit;
+  const res = await productRepository.findProductsByFilters(search, category, minPrice, maxPrice, sortDate, sortPrice, skip, limit);
+  return {
+    products: res.products,
+    pagination: {
+      total: res.total,
+      page,
+      limit,
+      totalPages: Math.ceil(res.total / limit),
+    },
+  };
+}
+
 module.exports = {
   getPaginatedProducts,
   getAllProducts,
@@ -105,4 +135,6 @@ module.exports = {
   getProductByIdService,
   createReviewService,
   getSimilarProductsService,
+  getProductsByCategoryService,
+  getProductsService
 };

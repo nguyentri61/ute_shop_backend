@@ -8,6 +8,8 @@ import {
   getProductByIdService,
   createReviewService,
   getSimilarProductsService,
+  getProductsByCategoryService,
+  getProductsService
 } from "../services/productServices.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 
@@ -141,6 +143,35 @@ export const getSimilarProducts = async (req, res) => {
     return errorResponse(res, err.message || "Lỗi server", 500);
   }
 };
+
+export const getProductsByCategory = async (req, res) => {
+  try {
+    const categoryId = req.params.categoryId;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    if (!categoryId) {
+      return errorResponse(res, "Thiếu id danh mục", 400);
+    }
+    const products = await getProductsByCategoryService(categoryId, page, limit);
+    return successResponse(res, "Lấy sản phẩm theo danh mục thành công", products);
+  } catch (err) {
+    console.error(err);
+    return errorResponse(res, err.message || "Lỗi server", 500);
+  }
+};
+
+export const getProducts = async (req, res) => {
+  try {
+    const { search, category, minPrice, maxPrice, sortDate, sortPrice } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const result = await getProductsService(search, category, minPrice, maxPrice, sortDate, sortPrice, page, limit);
+    return successResponse(res, "Lấy sản phẩm theo bộ lọc thành công", result);
+  } catch (err) {
+    console.error(err);
+    return errorResponse(res, err.message || "Lỗi server", 500);
+  }
+}
 
 // export const getMyCoupons = async (req, res) => {
 //   try {
