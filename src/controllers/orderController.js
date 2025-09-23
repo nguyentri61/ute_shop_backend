@@ -6,6 +6,7 @@ import {
   updateOrderStatusService,
   getAllOrders,
 } from "../services/orderServices.js";
+import { notifyAdmin, notifyUser } from "../services/notificationService.js";
 import { cartService } from "../services/cartServices.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 
@@ -72,6 +73,21 @@ export const checkOutCOD = async (req, res) => {
       shippingVoucher,
       productVoucher
     );
+
+    // Gửi thông báo cho admin khi có đơn hàng mới
+    notifyAdmin({
+      message: `Đơn hàng mới từ người dùng ${userId}`,
+      type: "success",
+      link: `/admin`,
+    });
+
+    // Gửi thông báo cho user
+    notifyUser({
+      userId,
+      message: `Bạn đã đặt hàng thành công! Mã đơn: #${order.id}`,
+      type: "info",
+      link: `/orders`,
+    });
 
     return successResponse(res, "Check out thành công", { order, orderItems });
   } catch (err) {
