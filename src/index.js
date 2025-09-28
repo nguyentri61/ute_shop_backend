@@ -125,6 +125,7 @@ console.log("Using basePath:", basePath);
     const { default: recentlyViewedRoutes } = await import(
       "./routes/recentlyViewedRoutes.js"
     );
+    const { default: adminRoutes } = await import("./routes/adminRoutes.js");
 
     app.use(`${basePath}/auth`, authRoutes);
     app.use(`${basePath}/users`, userRoutes);
@@ -136,6 +137,7 @@ console.log("Using basePath:", basePath);
     app.use(`${basePath}/coupons`, couponRoutes);
     app.use(`${basePath}/favorites`, favoriteRoutes);
     app.use(`${basePath}/recently-viewed`, recentlyViewedRoutes);
+    app.use(`${basePath}/admin`, adminRoutes);
 
     app.use("/public", express.static(path.join(__dirname, "../public")));
 
