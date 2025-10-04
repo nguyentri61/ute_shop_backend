@@ -32,6 +32,29 @@ const productVariantRepository = {
             where: { id },
         });
     },
+
+    async increaseStock(id, quantity, tx = prisma) {
+        return tx.productVariant.update({
+            where: { id },
+            data: {
+                stock: {
+                    increment: quantity,
+                },
+            },
+        });
+    },
+
+    async decreaseStock(id, quantity, tx = prisma) {
+        return tx.productVariant.update({
+            where: { id },
+            data: {
+                stock: {
+                    decrement: quantity,
+                },
+            },
+        });
+    },
+
 };
 
 module.exports = productVariantRepository;

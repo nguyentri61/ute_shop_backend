@@ -45,29 +45,57 @@ export const getOrderItemByOrderId = async (orderId) => {
 
 export const checkOutCODService = async (
   userId,
-  adress,
+  address,
   phone,
   cartItemIds,
   total,
   shippingVoucher,
   productVoucher
 ) => {
+  if (!address || !phone) {
+    throw new Error("Thiếu thông tin địa chỉ hoặc số điện thoại");
+  }
+  if (total <= 0) {
+    throw new Error("Tổng tiền không hợp lệ");
+  }
+
   return await prisma.$transaction(async (tx) => {
-    const order = await createOrder(userId, adress, phone, total, tx);
     const cartItems = await cartRepository.getCartByIds(cartItemIds, tx);
+
+    if (!cartItems || cartItems.length === 0) {
+      throw new Error("Giỏ hàng trống, không thể tạo đơn hàng");
+    }
+
+    // Kiểm tra tồn kho
+    for (const item of cartItems) {
+      if (item.variant.stock < item.quantity) {
+        throw new Error(`Sản phẩm ${item.productVariant.name} không đủ hàng`);
+      }
+    }
+
+    const order = await createOrder(userId, address, phone, total, tx);
+
     if (shippingVoucher)
       await updateCouponOrderId(shippingVoucher, order.id, tx);
 
     if (productVoucher)
       await updateCouponOrderId(productVoucher, order.id, tx);
 
-    // Nếu giỏ hàng rỗng thì rollback
-    if (!cartItems || cartItems.length === 0) {
-      throw new Error("Giỏ hàng trống, không thể tạo đơn hàng");
-    }
-
     const orderItems = await createOrderItems(order.id, cartItems, tx);
 
+    // Trừ tồn kho
+    for (const item of cartItems) {
+      await tx.productVariant.update({
+        where: { id: item.variantId },
+        data: {
+          stock: {
+            decrement: item.quantity,
+          },
+        },
+      });
+    }
+
+    // Xóa cart
     await cartRepository.removeCartItems(cartItemIds, tx);
 
     return { order, orderItems };
