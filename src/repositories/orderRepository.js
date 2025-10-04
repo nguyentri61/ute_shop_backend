@@ -2,10 +2,13 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export const findOrdersByUserId = async (userId) => {
-  console.log("Repo: ", userId);
-  const orders = await prisma.order.findMany({
-    where: { userId },
+// order.repo.js
+export const findOrdersByUserId = async (userId, status = "ALL", skip = 0, limit = 5) => {
+  const whereCondition = { userId };
+  if (status !== "ALL") whereCondition.status = status;
+
+  return await prisma.order.findMany({
+    where: whereCondition,
     include: {
       items: {
         include: {
@@ -17,10 +20,7 @@ export const findOrdersByUserId = async (userId) => {
                   name: true,
                   price: true,
                   discountPrice: true,
-                  productImage: {
-                    take: 1,
-                    select: { url: true },
-                  },
+                  productImage: { take: 1, select: { url: true } },
                 },
               },
             },
@@ -29,9 +29,15 @@ export const findOrdersByUserId = async (userId) => {
       },
     },
     orderBy: { createdAt: "desc" },
+    skip,
+    take: limit,
   });
+};
 
-  return orders;
+export const countOrdersByUserId = async (userId, status = "ALL") => {
+  const whereCondition = { userId };
+  if (status !== "ALL") whereCondition.status = status;
+  return await prisma.order.count({ where: whereCondition });
 };
 
 export const findOrderItemByOrderId = async (orderId) => {
