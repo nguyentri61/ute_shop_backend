@@ -13,18 +13,26 @@ import { successResponse, errorResponse } from "../utils/response.js";
 export const myOrders = async (req, res) => {
   try {
     const userId = req.user?.id;
-    console.log(userId);
-    if (!userId) {
-      return errorResponse(res, "Người dùng chưa đăng nhập", 401);
-    }
+    if (!userId) return errorResponse(res, "Người dùng chưa đăng nhập", 401);
 
-    const orders = await getMyOrders(userId);
+    const status = req.query.status || "ALL";
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
 
-    return successResponse(res, "Lấy danh sách đơn hàng thành công", orders);
+    const { orders, total } = await getMyOrders(userId, status, skip, limit);
+
+    return successResponse(res, "Lấy danh sách đơn hàng thành công", {
+      data: orders,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+    });
   } catch (err) {
     return errorResponse(res, err.message, 500);
   }
 };
+
 
 export const orderItemByOrderId = async (req, res) => {
   try {

@@ -10,33 +10,44 @@ import {
   findOrderById,
   updateOrderStatus,
   findAllOrders,
+  countOrdersByUserId,
 } from "../repositories/orderRepository.js";
 import { cartRepository } from "../repositories/cartRepository.js";
 import { updateCouponOrderId } from "../repositories/couponRepository.js";
 
-export const getMyOrders = async (userId) => {
-  console.log("Service: ", userId);
-  const orders = await findOrdersByUserId(userId);
+// order.service.js
 
-  return orders.map((order) => ({
+export const getMyOrders = async (userId, status = "ALL", skip = 0, limit = 5) => {
+  const [orders, total] = await Promise.all([
+    findOrdersByUserId(userId, status, skip, limit),
+    countOrdersByUserId(userId, status),
+  ]);
+
+  const mappedOrders = orders.map((order) => ({
     id: order.id,
     status: order.status,
     createdAt: order.createdAt,
     total: order.total,
-    items: order.items.map((item) => ({
-      id: item.id,
-      quantity: item.quantity,
-      price: item.variant?.product?.discountPrice,
-      product: {
-        id: item.variant?.product?.id,
-        name: item.variant?.product?.name,
-        price: item.variant?.product?.price,
-        discountPrice: item.variant?.product?.discountPrice,
-        image: item.variant?.product?.productImage?.[0]?.url || null,
-      },
-    })),
+    items: order.items.map((item) => {
+      const product = item.variant?.product;
+      return {
+        id: item.id,
+        quantity: item.quantity,
+        price: product?.discountPrice ?? product?.price,
+        product: {
+          id: product?.id,
+          name: product?.name,
+          price: product?.price,
+          discountPrice: product?.discountPrice,
+          image: product?.productImage?.[0]?.url || null,
+        },
+      };
+    }),
   }));
+
+  return { orders: mappedOrders, total };
 };
+
 
 export const getOrderItemByOrderId = async (orderId) => {
   const orderItems = await findOrderItemByOrderId(orderId);
