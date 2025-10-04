@@ -83,6 +83,13 @@ async function createReviewService({ userId, productId, rating, comment }) {
   return { review, coupon };
 }
 
+async function getReviewByUserIdAndProductId(userId, productId) {
+  return await productRepository.getReviewByUserIdAndProductId(
+    userId,
+    productId
+  );
+}
+
 // Lấy sản phẩm tương tự
 async function getSimilarProductsService(productId, limit = 8) {
   // Lấy thông tin sản phẩm hiện tại
@@ -103,7 +110,11 @@ async function getSimilarProductsService(productId, limit = 8) {
 
 async function getProductsByCategoryService(categoryId, page = 1, limit = 10) {
   const skip = (page - 1) * limit;
-  const products = await productRepository.findProductsByCategory(categoryId, skip, limit);
+  const products = await productRepository.findProductsByCategory(
+    categoryId,
+    skip,
+    limit
+  );
   const total = await productRepository.countProductsByCategory(categoryId);
 
   return {
@@ -114,12 +125,30 @@ async function getProductsByCategoryService(categoryId, page = 1, limit = 10) {
       limit,
       totalPages: Math.ceil(total / limit),
     },
-  }
+  };
 }
 
-const getProductsService = async (search, category, minPrice, maxPrice, sortDate, sortPrice, page, limit) => {
+const getProductsService = async (
+  search,
+  category,
+  minPrice,
+  maxPrice,
+  sortDate,
+  sortPrice,
+  page,
+  limit
+) => {
   const skip = (page - 1) * limit;
-  const res = await productRepository.findProductsByFilters(search, category, minPrice, maxPrice, sortDate, sortPrice, skip, limit);
+  const res = await productRepository.findProductsByFilters(
+    search,
+    category,
+    minPrice,
+    maxPrice,
+    sortDate,
+    sortPrice,
+    skip,
+    limit
+  );
   return {
     products: res.products,
     pagination: {
@@ -129,7 +158,7 @@ const getProductsService = async (search, category, minPrice, maxPrice, sortDate
       totalPages: Math.ceil(res.total / limit),
     },
   };
-}
+};
 
 module.exports = {
   getPaginatedProducts,
@@ -142,5 +171,6 @@ module.exports = {
   createReviewService,
   getSimilarProductsService,
   getProductsByCategoryService,
-  getProductsService
+  getProductsService,
+  getReviewByUserIdAndProductId,
 };

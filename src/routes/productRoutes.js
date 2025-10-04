@@ -10,7 +10,8 @@ import {
   createReview,
   getSimilarProducts,
   getProductsByCategory,
-  getProducts
+  getProducts,
+  getReview,
 } from "../controllers/productController.js";
 import {
   authMiddleware,
@@ -29,5 +30,6 @@ router.get("/top-discount", topDiscountProducts);
 router.get("/:id", getProductById);
 router.get("/:id/similar", getSimilarProducts);
 router.post("/:id/reviews", authMiddleware, createReview);
+router.get("/:id/reviews", authMiddleware, getReview);
 router.get("/category/:categoryId", getProductsByCategory);
 export default router;

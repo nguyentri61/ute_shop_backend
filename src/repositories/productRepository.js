@@ -130,13 +130,24 @@ export const createReview = async (data) => {
   return prisma.review.create({ data });
 };
 
+// Lấy review của user cho sản phẩm
+export const getReviewByUserIdAndProductId = async (userId, productId) => {
+  return await prisma.review.findFirst({
+    where: { userId, productId },
+  });
+};
+
 // Tạo coupon
 export const createCoupon = async (data) => {
   return prisma.coupon.create({ data });
 };
 
 // Lấy sản phẩm tương tự
-export const findSimilarProducts = async (categoryId, excludeProductId, limit) => {
+export const findSimilarProducts = async (
+  categoryId,
+  excludeProductId,
+  limit
+) => {
   return prisma.product.findMany({
     where: {
       categoryId: categoryId,
@@ -178,13 +189,13 @@ export const findProductsByCategory = async (categoryId, skip, take) => {
     orderBy: { createdAt: "desc" },
     include: { productImage: true },
   });
-}
+};
 
 export const countProductsByCategory = async (categoryId) => {
   return await prisma.product.count({
-    where: { categoryId }
+    where: { categoryId },
   });
-}
+};
 
 export const findProductsByFilters = async (
   search,
@@ -196,7 +207,6 @@ export const findProductsByFilters = async (
   skip,
   take
 ) => {
-
   const min = minPrice !== undefined ? Number(minPrice) : undefined;
   const max = maxPrice !== undefined ? Number(maxPrice) : undefined;
 
@@ -238,7 +248,7 @@ export const findProductsByFilters = async (
     products = fuseResults.map((result) => result.item);
   }
 
-  // 4. Sắp xếp 
+  // 4. Sắp xếp
   if (sortPrice) {
     products.sort((a, b) =>
       sortPrice === "asc"
@@ -254,7 +264,6 @@ export const findProductsByFilters = async (
       return sortDate === "asc" ? dateA - dateB : dateB - dateA;
     });
   }
-
 
   // 5. Phân trang (skip, take)
   const total = products.length;

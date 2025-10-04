@@ -9,7 +9,8 @@ import {
   createReviewService,
   getSimilarProductsService,
   getProductsByCategoryService,
-  getProductsService
+  getProductsService,
+  getReviewByUserIdAndProductId,
 } from "../services/productServices.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 
@@ -112,7 +113,10 @@ export const createReview = async (req, res) => {
     const productId = req.params.id;
     const userId = req.user.id;
     const { rating, comment } = req.body;
-
+    const reviewed = await getReviewByUserIdAndProductId(userId, productId);
+    if (reviewed) {
+      return errorResponse(res, "Bạn đã đánh giá sản phẩm này rồi", 400);
+    }
     const review = await createReviewService({
       productId,
       userId,
@@ -121,6 +125,18 @@ export const createReview = async (req, res) => {
     });
     console.log("Đánh giá");
     return successResponse(res, "Đánh giá sản phẩm thành côngg", review);
+  } catch (err) {
+    console.error(err);
+    return errorResponse(res, err.message || "Lỗi server", 500);
+  }
+};
+
+export const getReview = async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const userId = req.user.id;
+    const review = await getReviewByUserIdAndProductId(userId, productId);
+    return successResponse(res, "Lấy đánh giá sản phẩm thành công", review);
   } catch (err) {
     console.error(err);
     return errorResponse(res, err.message || "Lỗi server", 500);
@@ -137,7 +153,11 @@ export const getSimilarProducts = async (req, res) => {
     }
 
     const similarProducts = await getSimilarProductsService(id, limit);
-    return successResponse(res, "Lấy sản phẩm tương tự thành công", similarProducts);
+    return successResponse(
+      res,
+      "Lấy sản phẩm tương tự thành công",
+      similarProducts
+    );
   } catch (err) {
     console.error(err);
     return errorResponse(res, err.message || "Lỗi server", 500);
@@ -152,8 +172,16 @@ export const getProductsByCategory = async (req, res) => {
     if (!categoryId) {
       return errorResponse(res, "Thiếu id danh mục", 400);
     }
-    const products = await getProductsByCategoryService(categoryId, page, limit);
-    return successResponse(res, "Lấy sản phẩm theo danh mục thành công", products);
+    const products = await getProductsByCategoryService(
+      categoryId,
+      page,
+      limit
+    );
+    return successResponse(
+      res,
+      "Lấy sản phẩm theo danh mục thành công",
+      products
+    );
   } catch (err) {
     console.error(err);
     return errorResponse(res, err.message || "Lỗi server", 500);
@@ -162,16 +190,26 @@ export const getProductsByCategory = async (req, res) => {
 
 export const getProducts = async (req, res) => {
   try {
-    const { search, category, minPrice, maxPrice, sortDate, sortPrice } = req.query;
+    const { search, category, minPrice, maxPrice, sortDate, sortPrice } =
+      req.query;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const result = await getProductsService(search, category, minPrice, maxPrice, sortDate, sortPrice, page, limit);
+    const result = await getProductsService(
+      search,
+      category,
+      minPrice,
+      maxPrice,
+      sortDate,
+      sortPrice,
+      page,
+      limit
+    );
     return successResponse(res, "Lấy sản phẩm theo bộ lọc thành công", result);
   } catch (err) {
     console.error(err);
     return errorResponse(res, err.message || "Lỗi server", 500);
   }
-}
+};
 
 // export const getMyCoupons = async (req, res) => {
 //   try {
@@ -179,4 +217,3 @@ export const getProducts = async (req, res) => {
 //     if (!userId) {
 //       return errorResponse(res, "Người dùng chưa đăng nhập", 401);
 //     }
-
