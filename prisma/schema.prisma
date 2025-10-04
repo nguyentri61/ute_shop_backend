@@ -139,6 +139,7 @@ model user {
   coupons  coupon[]
   favorites favorite[]
   recentlyViewed recentlyViewed[]
+  notifications   notification[] 
 }
 
 model review {
@@ -205,4 +206,23 @@ model recentlyViewed {
   @@index([userId])
   @@index([productId])
   @@index([viewedAt])
+}
+
+model notification {
+  id          String   @id @default(uuid())
+  message     String                    // nội dung thông báo
+  type        String   @default("info") // loại: info, success, warning, error
+  link        String?                   // link đến trang chi tiết (VD: /order/123)
+  isRead      Boolean  @default(false)  // trạng thái đã đọc hay chưa
+  createdAt   DateTime @default(now())
+
+  // Nếu gửi cho 1 user cụ thể
+  userId      String? 
+  user        user?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Nếu gửi cho admin toàn hệ thống (tùy chọn)
+  isForAdmin  Boolean  @default(false)
+
+  @@index([userId])
+  @@index([createdAt])
 }
