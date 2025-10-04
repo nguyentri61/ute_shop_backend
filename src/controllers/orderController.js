@@ -5,6 +5,7 @@ import {
   cancelOrder,
   updateOrderStatusService,
   getAllOrders,
+  getOrderDetailById,
 } from "../services/orderServices.js";
 import { notifyAdmin, notifyUser } from "../services/notificationService.js";
 import { cartService } from "../services/cartServices.js";
@@ -164,6 +165,19 @@ export const allOrders = async (req, res) => {
       "Lấy danh sách tất cả đơn hàng thành công",
       orders
     );
+  } catch (err) {
+    return errorResponse(res, err.message, 500);
+  }
+};
+
+export const orderDetail = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    if (!orderId) {
+      return errorResponse(res, "Chưa truyền OrderId", 400);
+    }
+    const order = await getOrderDetailById(orderId);
+    return successResponse(res, "Lấy chi tiết đơn hàng thành công", order);
   } catch (err) {
     return errorResponse(res, err.message, 500);
   }

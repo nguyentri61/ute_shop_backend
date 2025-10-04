@@ -11,13 +11,19 @@ import {
   updateOrderStatus,
   findAllOrders,
   countOrdersByUserId,
+  getOrderDetail,
 } from "../repositories/orderRepository.js";
 import { cartRepository } from "../repositories/cartRepository.js";
 import { updateCouponOrderId } from "../repositories/couponRepository.js";
 
 // order.service.js
 
-export const getMyOrders = async (userId, status = "ALL", skip = 0, limit = 5) => {
+export const getMyOrders = async (
+  userId,
+  status = "ALL",
+  skip = 0,
+  limit = 5
+) => {
   const [orders, total] = await Promise.all([
     findOrdersByUserId(userId, status, skip, limit),
     countOrdersByUserId(userId, status),
@@ -47,7 +53,6 @@ export const getMyOrders = async (userId, status = "ALL", skip = 0, limit = 5) =
 
   return { orders: mappedOrders, total };
 };
-
 
 export const getOrderItemByOrderId = async (orderId) => {
   const orderItems = await findOrderItemByOrderId(orderId);
@@ -85,12 +90,16 @@ export const checkOutCODService = async (
     }
 
     const order = await createOrder(userId, address, phone, total, tx);
-
+    await tx.orderStatusHistory.create({
+      data: {
+        orderId: order.id,
+        status: "NEW",
+      },
+    });
     if (shippingVoucher)
       await updateCouponOrderId(shippingVoucher, order.id, tx);
 
-    if (productVoucher)
-      await updateCouponOrderId(productVoucher, order.id, tx);
+    if (productVoucher) await updateCouponOrderId(productVoucher, order.id, tx);
 
     const orderItems = await createOrderItems(order.id, cartItems, tx);
 
@@ -129,11 +138,23 @@ export const cancelOrder = async (orderId, userId) => {
     minutesSinceCreated <= 30 &&
     ["NEW", "CONFIRMED"].includes(order.status)
   ) {
+    await prisma.orderStatusHistory.create({
+      data: {
+        orderId: order.id,
+        status: "CANCELLED",
+      },
+    });
     return await updateOrderStatus(order.id, "CANCELLED");
   }
 
   // Nếu đang chuẩn bị hàng => gửi yêu cầu hủy
   if (order.status === "PREPARING") {
+    await prisma.orderStatusHistory.create({
+      data: {
+        orderId: order.id,
+        status: "CANCEL_REQUEST",
+      },
+    });
     return await updateOrderStatus(order.id, "CANCEL_REQUEST");
   }
 
@@ -167,8 +188,26 @@ export const updateOrderStatusService = async (orderId, newStatus) => {
     throw new Error("Đơn hàng đã hủy không thể thay đổi trạng thái");
   }
 
-  // Cập nhật trạng thái
-  return await updateOrderStatus(orderId, newStatus);
+  // Cập nhật trạng thái đơn hàng và thêm lịch sử
+  const updatedOrder = await prisma.$transaction(async (tx) => {
+    // 1️⃣ Cập nhật trạng thái đơn hàng
+    const updated = await tx.order.update({
+      where: { id: orderId },
+      data: { status: newStatus },
+    });
+
+    // 2️⃣ Lưu lịch sử thay đổi
+    await tx.orderStatusHistory.create({
+      data: {
+        orderId,
+        status: newStatus,
+      },
+    });
+
+    return updated;
+  });
+
+  return updatedOrder;
 };
 
 // Lấy tất cả đơn hàng (dành cho admin)
@@ -201,4 +240,10 @@ export const getAllOrders = async () => {
       },
     })),
   }));
+};
+
+export const getOrderDetailById = async (orderId) => {
+  const order = await getOrderDetail(orderId);
+  if (!order) throw new Error("Không tìm thấy đơn hàng");
+  return order;
 };

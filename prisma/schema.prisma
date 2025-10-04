@@ -37,6 +37,7 @@ model order {
   user  user        @relation(fields: [userId], references: [id])
   items orderItem[]
   coupons coupon[]
+  statusHistory     orderStatusHistory[]
 }
 
 model orderItem {
@@ -225,4 +226,13 @@ model notification {
 
   @@index([userId])
   @@index([createdAt])
+}
+
+model orderStatusHistory {
+  id        String   @id @default(uuid())
+  orderId   String
+  status    String
+  createdAt DateTime @default(now())
+
+  order     order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
