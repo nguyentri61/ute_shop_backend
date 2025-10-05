@@ -1,11 +1,28 @@
+// src/routes/coupon.routes.js
 import express from "express";
-import { getAllCoupons, getCouponsByTypeAndUserId } from "../controllers/couponController.js";
+import {
+    // USER
+    getAllCoupons,
+    getCouponsByUserId,
+    getCouponsByTypeAndUserId,
+} from "../controllers/couponController.js";
 import { authMiddleware } from "../middlewares/authMiddlewares.js";
+
 const router = express.Router();
 
+// Tất cả route bên dưới yêu cầu đăng nhập
 router.use(authMiddleware);
 
-router.get("/all", getAllCoupons)
+/* =========================
+ *          USER
+ * ========================= */
+// GET /coupons/all
+router.get("/all", getAllCoupons);
+
+// GET /coupons/my -> tất cả coupon hợp lệ của user
+router.get("/my", getCouponsByUserId);
+
+// GET /coupons/my-coupons?type=PRODUCT|SHIPPING|ORDER|USER
 router.get("/my-coupons", getCouponsByTypeAndUserId);
 
 export default router;
