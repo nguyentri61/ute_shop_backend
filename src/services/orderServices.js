@@ -87,10 +87,10 @@ export const checkOutCODService = async (
     const order = await createOrder(userId, address, phone, total, tx);
 
     if (shippingVoucher)
-      await updateCouponOrderId(shippingVoucher, order.id, tx);
+      await updateCouponOrderId(shippingVoucher, order.id, userId, tx);
 
     if (productVoucher)
-      await updateCouponOrderId(productVoucher, order.id, tx);
+      await updateCouponOrderId(productVoucher, order.id, userId, tx);
 
     const orderItems = await createOrderItems(order.id, cartItems, tx);
 

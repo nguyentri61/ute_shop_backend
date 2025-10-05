@@ -2,7 +2,6 @@ import {
     // User-facing
     findAllCoupons,
     findCouponsByUserId,
-    findCouponsByTypeAndUserId,
     // Admin-facing
     countAllCoupons,
     countActiveCoupons,
@@ -17,6 +16,7 @@ import {
     deleteCouponRepo,
     findCouponByCode,
     findCouponById,
+    findCouponsForUser,
 } from "../repositories/couponRepository.js";
 
 /* ========== USER SERVICES ========== */
@@ -29,13 +29,20 @@ export const getAllCouponsService = async () => {
     return await findAllCoupons();
 };
 
-export const getCouponsByTypeAndUserIdService = async (type, userId) => {
-    return await findCouponsByTypeAndUserId(type, userId);
+export const getCouponsForUserService = async (type, userId) => {
+    if (!userId) {
+        const err = new Error("Thiếu userId");
+        err.status = 400;
+        throw err;
+    }
+
+    return await findCouponsForUser(type, userId);
 };
+
 
 /**
  * Validate coupon theo yêu cầu:
- * - phải thuộc về user
+ * - phải thuộc về user 
  * - chưa gán orderId
  * - chưa hết hạn
  * - type ∈ {SHIPPING, PRODUCT}
@@ -52,7 +59,7 @@ export const validateCoupon = async (couponId, subTotal = 0, userId) => {
         c.orderId === null &&
         new Date(c.expiredAt) >= new Date() &&
         (c.type === "SHIPPING" || c.type === "PRODUCT") &&
-        c.userId === userId &&
+        (c.userId === userId || c.userId === null) &&
         // FIX precedence: nếu KHÔNG phải PRODUCT thì pass, còn PRODUCT thì check minOrderValue
         (c.type !== "PRODUCT" || subTotal >= c.minOrderValue)
     );

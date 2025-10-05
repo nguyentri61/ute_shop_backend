@@ -17,42 +17,136 @@ export const findAllCoupons = async () => {
   });
 };
 
-export const findCouponsByTypeAndUserId = async (type, userId) => {
-  // ép string sang enum
-  let typeEnum;
-  switch (String(type).toUpperCase()) {
-    case "SHIPPING":
-      typeEnum = CouponType.SHIPPING;
-      break;
-    case "PRODUCT":
-      typeEnum = CouponType.PRODUCT;
-      break;
-    default:
-      // fallback an toàn
-      typeEnum = CouponType.PRODUCT;
-  }
+export const findValidCouponByCode = async (couponCode, userId = null, subTotal = 0) => {
+  const orConditions = [{ userId: null }];
+  if (userId) orConditions.push({ userId });
 
-  return await prisma.coupon.findMany({
+  const coupon = await prisma.coupon.findFirst({
     where: {
-      type: typeEnum,
-      userId,
+      code: String(couponCode).trim(),
       orderId: null,
       expiredAt: { gte: new Date() },
+      OR: orConditions,
+    },
+    select: {
+      id: true,
+      code: true,
+      discount: true,
+      minOrderValue: true,
+      expiredAt: true,
     },
     orderBy: { expiredAt: "asc" },
   });
+
+  if (!coupon) return null;
+  console.log("🔍 findValidCouponByCode:", {
+    couponCode,
+    userId,
+    subTotal,
+    typeSubTotal: typeof subTotal
+  });
+
+  console.log(coupon.minOrderValue);
+  if (subTotal < coupon.minOrderValue) return null;
+  return coupon;
 };
 
-export const updateCouponOrderId = async (couponId, orderId, client = prisma) => {
-  const coupon = await client.coupon.findUnique({ where: { id: couponId } });
+export const findCouponsForUser = async (type, userId) => {
+  // ✅ Ép type sang enum hợp lệ
+  const typeEnum =
+    String(type).toUpperCase() === "SHIPPING"
+      ? CouponType.SHIPPING
+      : CouponType.PRODUCT;
+
+  // ✅ 1️⃣ Đếm tổng số coupon còn hạn mỗi code
+  const grouped = await prisma.coupon.groupBy({
+    by: ["code"],
+    where: {
+      type: typeEnum,
+      expiredAt: { gte: new Date() },
+    },
+    _count: { _all: true },
+  });
+
+  // ✅ 2️⃣ Đếm số coupon đã dùng (có orderId hoặc userId)
+  const used = await prisma.coupon.groupBy({
+    by: ["code"],
+    where: {
+      type: typeEnum,
+      expiredAt: { gte: new Date() },
+      OR: [{ orderId: { not: null } }, { userId: { not: null } }],
+    },
+    _count: { _all: true },
+  });
+
+  // ✅ 3️⃣ Map số lượng đã dùng
+  const usedMap = Object.fromEntries(
+    used.map((u) => [u.code, u._count._all])
+  );
+
+  // ✅ 4️⃣ Lấy danh sách mã hợp lệ (1 bản ghi / code)
+  const coupons = await prisma.coupon.groupBy({
+    by: ["code"],
+    where: {
+      type: typeEnum,
+      orderId: null,
+      expiredAt: { gte: new Date() },
+      OR: [{ userId: userId }, { userId: null }],
+    },
+    _min: {
+      discount: true,
+      expiredAt: true,
+      minOrderValue: true,
+    },
+  });
+
+  // ✅ 5️⃣ Tính remaining & lọc mã hết lượt
+  return coupons
+    .map((c) => {
+      const total = grouped.find((g) => g.code === c.code)?._count._all || 0;
+      const usedCount = usedMap[c.code] || 0;
+      const remaining = Math.max(total - usedCount, 0);
+
+      return {
+        code: c.code,
+        discount: c._min.discount,
+        expiredAt: c._min.expiredAt,
+        minOrderValue: c._min.minOrderValue ?? 0,
+        remaining,
+      };
+    })
+    .filter((c) => c.remaining > 0)
+    .sort((a, b) => new Date(a.expiredAt) - new Date(b.expiredAt));
+};
+
+
+
+
+export const updateCouponOrderId = async (couponCode, orderId, userId = null, client = prisma) => {
+  const orConditions = [{ userId: null }];
+  if (userId) orConditions.push({ userId });
+
+  const coupon = await client.coupon.findFirst({
+    where: {
+      code: couponCode,
+      orderId: null,
+      expiredAt: { gte: new Date() },
+      OR: orConditions,
+    },
+    orderBy: { expiredAt: "asc" },
+  });
+
   if (!coupon) {
-    throw new Error(`Coupon ${couponId} không tồn tại hoặc đã bị xóa.`);
+    throw new Error(`Mã giảm giá "${couponCode}" không tồn tại hoặc không còn hợp lệ.`);
   }
+
   return await client.coupon.update({
-    where: { id: couponId },
+    where: { id: coupon.id },
     data: { orderId },
   });
 };
+
+
 
 /* ========== ADMIN REPOSITORY ========== */
 

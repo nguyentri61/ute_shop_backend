@@ -68,10 +68,6 @@ export const checkOutCOD = async (req, res) => {
       productVoucher
     );
 
-    console.log("shippingVoucher", shippingVoucher);
-    console.log("productVoucher", productVoucher);
-    console.log("Result", result);
-
     const { order, orderItems } = await checkOutCODService(
       userId,
       address,

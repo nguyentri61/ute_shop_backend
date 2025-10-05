@@ -1,8 +1,6 @@
 import { cartRepository } from "../repositories/cartRepository.js";
 import { cartItemDto } from "../dto/cartItem.dto.js";
-import { findCouponsByUserId } from "../repositories/couponRepository.js";
-import { validate } from "uuid";
-import { validateCoupon } from "./couponService.js";
+import { findValidCouponByCode } from "../repositories/couponRepository.js";
 
 export const cartService = {
     async getCart(userId) {
@@ -30,14 +28,21 @@ export const cartService = {
 
         let shippingFee = 30000;
 
-        const coupons = await findCouponsByUserId(userId);
-
         // Kiểm tra và lấy thông tin voucher
-        const shippingCoupon = await validateCoupon(shippingVoucher, userId);
-        const productCoupon = await validateCoupon(productVoucher, subTotal, userId);
+        let shippingCoupon = null;
+        let productCoupon = null;
 
-        console.log("Shipping Coupon:", shippingCoupon);
-        console.log("Product Coupon:", productCoupon);
+        console.log("🧮 subTotal trước khi gọi findValidCouponByCode:", subTotal, typeof subTotal);
+
+        if (shippingVoucher && typeof shippingVoucher === "string" && shippingVoucher.trim() !== "") {
+            shippingCoupon = await findValidCouponByCode(shippingVoucher.trim(), userId, subTotal);
+        }
+
+        if (productVoucher && typeof productVoucher === "string" && productVoucher.trim() !== "") {
+            productCoupon = await findValidCouponByCode(productVoucher.trim(), userId, subTotal);
+        }
+
+
         // Gán giá trị discount (nếu có, nếu không thì = 0)
         let shippingDiscount = shippingCoupon?.discount ?? 0;
         let productDiscount = productCoupon?.discount ?? 0;

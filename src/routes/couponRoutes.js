@@ -4,7 +4,7 @@ import {
     // USER
     getAllCoupons,
     getCouponsByUserId,
-    getCouponsByTypeAndUserId,
+    getCouponsForUser,
 } from "../controllers/couponController.js";
 import { authMiddleware } from "../middlewares/authMiddlewares.js";
 
@@ -23,6 +23,6 @@ router.get("/all", getAllCoupons);
 router.get("/my", getCouponsByUserId);
 
 // GET /coupons/my-coupons?type=PRODUCT|SHIPPING|ORDER|USER
-router.get("/my-coupons", getCouponsByTypeAndUserId);
+router.get("/my-coupons", getCouponsForUser);
 
 export default router;

@@ -3,7 +3,6 @@ import {
     // === User services ===
     getAllCouponsService,
     getCouponsByUserIdService,
-    getCouponsByTypeAndUserIdService,
 
     // === Admin services ===
     couponStatsService,
@@ -13,6 +12,7 @@ import {
     createCouponsService,
     updateCouponService,
     deleteCouponService,
+    getCouponsForUserService,
 } from "../services/couponService.js";
 import { errorResponse, successResponse } from "../utils/response.js";
 
@@ -39,7 +39,7 @@ export const getCouponsByUserId = async (req, res) => {
     }
 };
 
-export const getCouponsByTypeAndUserId = async (req, res) => {
+export const getCouponsForUser = async (req, res) => {
     try {
         const userId = req.user?.id;
         const type = req.query.type?.toUpperCase();
@@ -54,7 +54,7 @@ export const getCouponsByTypeAndUserId = async (req, res) => {
             return errorResponse(res, "Loại mã giảm giá không hợp lệ", 400);
         }
 
-        const coupons = await getCouponsByTypeAndUserIdService(type, userId);
+        const coupons = await getCouponsForUserService(type, userId);
         return successResponse(res, "Lấy danh sách mã giảm giá theo loại thành công", coupons);
     } catch (error) {
         return errorResponse(res, error.message, 500);
