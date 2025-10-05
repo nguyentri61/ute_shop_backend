@@ -5,6 +5,7 @@ import {
   cancelOrder,
   updateOrderStatusService,
   getAllOrders,
+  getOrderDetailById,
 } from "../services/orderServices.js";
 import { notifyAdmin, notifyUser } from "../services/notificationService.js";
 import { cartService } from "../services/cartServices.js";
@@ -32,7 +33,6 @@ export const myOrders = async (req, res) => {
     return errorResponse(res, err.message, 500);
   }
 };
-
 
 export const orderItemByOrderId = async (req, res) => {
   try {
@@ -88,7 +88,10 @@ export const checkOutCOD = async (req, res) => {
     // Gửi thông báo cho user
     notifyUser({
       userId,
-      message: `Bạn đã đặt hàng thành công! Mã đơn: #${order.id}`,
+      message: `Bạn đã đặt hàng thành công! Mã đơn: #${order.id.substring(
+        0,
+        8
+      )}`,
       type: "info",
       link: `/orders`,
     });
@@ -125,13 +128,25 @@ export const updateOrderStatus = async (req, res) => {
     }
 
     // Kiểm tra xem status có hợp lệ không (thuộc enum OrderStatus)
-    const validStatuses = ['NEW', 'CONFIRMED', 'PREPARING', 'SHIPPING', 'DELIVERED', 'CANCELLED', 'CANCEL_REQUEST'];
+    const validStatuses = [
+      "NEW",
+      "CONFIRMED",
+      "PREPARING",
+      "SHIPPING",
+      "DELIVERED",
+      "CANCELLED",
+      "CANCEL_REQUEST",
+    ];
     if (!validStatuses.includes(status)) {
       return errorResponse(res, "Trạng thái không hợp lệ", 400);
     }
 
     const result = await updateOrderStatusService(orderId, status);
-    return successResponse(res, "Cập nhật trạng thái đơn hàng thành công", result);
+    return successResponse(
+      res,
+      "Cập nhật trạng thái đơn hàng thành công",
+      result
+    );
   } catch (err) {
     return errorResponse(res, err.message, 500);
   }
@@ -141,7 +156,24 @@ export const updateOrderStatus = async (req, res) => {
 export const allOrders = async (req, res) => {
   try {
     const orders = await getAllOrders();
-    return successResponse(res, "Lấy danh sách tất cả đơn hàng thành công", orders);
+    return successResponse(
+      res,
+      "Lấy danh sách tất cả đơn hàng thành công",
+      orders
+    );
+  } catch (err) {
+    return errorResponse(res, err.message, 500);
+  }
+};
+
+export const orderDetail = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    if (!orderId) {
+      return errorResponse(res, "Chưa truyền OrderId", 400);
+    }
+    const order = await getOrderDetailById(orderId);
+    return successResponse(res, "Lấy chi tiết đơn hàng thành công", order);
   } catch (err) {
     return errorResponse(res, err.message, 500);
   }

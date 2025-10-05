@@ -3,7 +3,12 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 // order.repo.js
-export const findOrdersByUserId = async (userId, status = "ALL", skip = 0, limit = 5) => {
+export const findOrdersByUserId = async (
+  userId,
+  status = "ALL",
+  skip = 0,
+  limit = 5
+) => {
   const whereCondition = { userId };
   if (status !== "ALL") whereCondition.status = status;
 
@@ -65,6 +70,15 @@ export const findOrderItemByOrderId = async (orderId) => {
         },
       },
     },
+  });
+
+  return orderItems;
+};
+
+export const findByOrderId = async (orderId) => {
+  const orderItems = await prisma.order.findFirst({
+    where: { orderId },
+    include: {},
   });
 
   return orderItems;
@@ -166,5 +180,35 @@ export const findOrderById = async (orderId, userId, client = prisma) => {
     return null; // không phải của user này
   }
 
+  return order;
+};
+export const getOrderDetail = async (orderId) => {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      user: {
+        select: { id: true, fullName: true, email: true, phone: true },
+      },
+      items: {
+        include: {
+          variant: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true,
+                  discountPrice: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      statusHistory: {
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
   return order;
 };

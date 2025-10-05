@@ -125,6 +125,9 @@ console.log("Using basePath:", basePath);
     const { default: recentlyViewedRoutes } = await import(
       "./routes/recentlyViewedRoutes.js"
     );
+    const { default: notificationRoutes } = await import(
+      "./routes/notificationRoutes.js"
+    );
     const { default: adminRoutes } = await import("./routes/adminRoutes.js");
 
     app.use(`${basePath}/auth`, authRoutes);
@@ -138,7 +141,7 @@ console.log("Using basePath:", basePath);
     app.use(`${basePath}/favorites`, favoriteRoutes);
     app.use(`${basePath}/recently-viewed`, recentlyViewedRoutes);
     app.use(`${basePath}/admin`, adminRoutes);
-
+    app.use(`${basePath}/notifications`, notificationRoutes);
     app.use("/public", express.static(path.join(__dirname, "../public")));
 
     // health check
