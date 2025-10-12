@@ -17,7 +17,7 @@ export const cartController = {
             const userId = req.user?.id;
             if (!userId) return errorResponse(res, "Unauthorized", 401);
 
-            const { cartItemIds, shippingVoucher, productVoucher } = req.body;
+            const { cartItemIds, shippingVoucher, productVoucher, lat, lng } = req.body;
 
             if (!cartItemIds || !cartItemIds.length) {
                 return errorResponse(res, "Chưa có sản phẩm nào được chọn", 400);
@@ -28,7 +28,9 @@ export const cartController = {
             const result = await cartService.getSelectedCart(
                 cartItemIds,
                 shippingVoucher,
-                productVoucher, 
+                productVoucher,
+                lat,
+                lng,
                 userId
             );
 

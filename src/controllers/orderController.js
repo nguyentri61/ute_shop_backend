@@ -55,7 +55,7 @@ export const checkOutCOD = async (req, res) => {
       return errorResponse(res, "Người dùng chưa đăng nhập", 401);
     }
 
-    const { address, phone, cartItemIds, shippingVoucher, productVoucher } =
+    const { address, phone, cartItemIds, shippingVoucher, productVoucher, lat, lng } =
       req.body;
 
     if (!cartItemIds || !cartItemIds.length) {
@@ -65,7 +65,9 @@ export const checkOutCOD = async (req, res) => {
     const result = await cartService.getSelectedCart(
       cartItemIds,
       shippingVoucher,
-      productVoucher
+      productVoucher,
+      lat,
+      lng,
     );
 
     const { order, orderItems } = await checkOutCODService(

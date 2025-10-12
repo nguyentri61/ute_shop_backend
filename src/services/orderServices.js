@@ -66,7 +66,7 @@ export const checkOutCODService = async (
   cartItemIds,
   total,
   shippingVoucher,
-  productVoucher
+  productVoucher,
 ) => {
   if (!address || !phone) {
     throw new Error("Thiếu thông tin địa chỉ hoặc số điện thoại");
