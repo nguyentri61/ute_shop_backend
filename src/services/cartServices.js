@@ -87,7 +87,7 @@ function calculateShippingFee(destLat, destLng) {
  */
 function applyShippingDiscount(shippingFee, shippingCoupon) {
     let discount = shippingCoupon?.discount ?? 0;
-    if (discount < 1) {
+    if (discount <= 1) {
         discount = Math.floor(shippingFee * discount);
     }
     if (discount > shippingFee) discount = shippingFee;
@@ -149,6 +149,8 @@ export const cartService = {
         let shippingCoupon = null;
         let productCoupon = null;
 
+        // if (shippingVoucher == null) shippingVoucher = "FREESHIPDON500K";
+
         // 2) Lấy voucher hợp lệ (nếu có)
         if (shippingVoucher && typeof shippingVoucher === "string" && shippingVoucher.trim() !== "") {
             shippingCoupon = await findValidCouponByCode(shippingVoucher.trim(), userId, subTotal);
@@ -171,7 +173,9 @@ export const cartService = {
                 subTotal,
                 shippingFee: computedShippingFee,
                 shippingDiscount,
+                shippingVoucher,
                 productDiscount,
+                productVoucher,
                 total,
                 // thông tin thêm cho UI
                 shippingMeta: {
