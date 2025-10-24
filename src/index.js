@@ -5,30 +5,63 @@ import cors from "cors";
 import path from "path";
 import { Server } from "socket.io";
 import { fileURLToPath } from "url";
+import http from "http";
+import { initNotification } from "./services/notificationService.js";
+import { initChatSocket } from "./services/conversationService.js";
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-import http from "http";
-import { initNotification } from "./services/notificationService.js";
 
-dotenv.config();
 const app = express();
 app.use(express.json());
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*", credentials: true } });
-initNotification(io);
 
+// ==================== 🔔 INIT Notification ====================
+initNotification(io);
 io.of("/notification").on("connection", (socket) => {
-  console.log("Client connected:", socket.id);
+  console.log("[Notification] Client connected:", socket.id);
 
   socket.on("register", ({ userId, role }) => {
     socket.join(`user:${userId}`);
     if (role === "ADMIN") socket.join("admin");
   });
 
-  socket.on("disconnect", () => console.log("Client disconnected:", socket.id));
+  socket.on("disconnect", () =>
+    console.log("[Notification] Client disconnected:", socket.id)
+  );
 });
-// CORS config (từ .env hoặc mặc định)
+
+// ==================== 💬 INIT Chat ====================
+initChatSocket(io);
+const chatNamespace = io.of("/chat");
+
+chatNamespace.on("connection", (socket) => {
+  console.log("[Chat] Client connected:", socket.id);
+
+  socket.on("register_chat", ({ userId, role }) => {
+    socket.join(`user:${userId}`);
+    if (role === "ADMIN") socket.join("admin");
+    console.log(
+      `[Chat] ${socket.id} joined rooms for user:${userId} (${role})`
+    );
+  });
+
+  socket.on("join_conversation", (conversationId) => {
+    socket.join(`conversation:${conversationId}`);
+    console.log(
+      `[Chat] ${socket.id} joined conversation:${conversationId} role: ${socket.data.role}`
+    );
+  });
+
+  socket.on("disconnect", () => {
+    console.log("[Chat] Client disconnected:", socket.id);
+  });
+});
+
+// ==================== 🌐 CORS Config ====================
 const FRONTENDS = (
   process.env.FRONTEND_URLS ||
   process.env.FRONTEND_URL ||
@@ -56,12 +89,10 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 
-// Global CORS middleware
 app.use(cors(corsOptions));
 
-// --- Manual preflight handler (avoid app.options('*', ...') which triggered path-to-regexp error) ---
+// --- Manual preflight handler ---
 app.use((req, res, next) => {
-  // Always set CORS response headers for browser requests
   const origin = req.headers.origin;
   if (origin && FRONTENDS.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
@@ -75,21 +106,19 @@ app.use((req, res, next) => {
   if (corsOptions.credentials)
     res.setHeader("Access-Control-Allow-Credentials", "true");
 
-  // If this is preflight, return success immediately
   if (req.method === "OPTIONS") {
     return res.sendStatus(corsOptions.optionsSuccessStatus || 204);
   }
   next();
 });
 
-// DEBUG: print envs that contain http(s) so we can spot any accidental full-URL used as a route
+// ==================== 🧩 Normalize BASE_PATH ====================
 console.log("ENV vars containing http(s):");
 Object.entries(process.env)
   .filter(([k, v]) => typeof v === "string" && /https?:\/\//i.test(v))
   .forEach(([k, v]) => console.log(`  ${k} => ${v}`));
 console.log("----");
 
-// Normalize BASE_PATH (nếu bạn mount routes từ env)
 const rawBase = (process.env.BASE_PATH || "/api").toString();
 let basePath = "/api";
 try {
@@ -102,7 +131,7 @@ try {
 }
 console.log("Using basePath:", basePath);
 
-// Lazy import routes to keep startup resilient while debugging imports
+// ==================== 🚀 Lazy import routes ====================
 (async () => {
   try {
     const { default: authRoutes } = await import("./routes/authRoutes.js");
@@ -129,6 +158,9 @@ console.log("Using basePath:", basePath);
       "./routes/notificationRoutes.js"
     );
     const { default: adminRoutes } = await import("./routes/adminRoutes.js");
+    const { default: conversationRoutes } = await import(
+      "./routes/conversationRoutes.js"
+    );
 
     app.use(`${basePath}/auth`, authRoutes);
     app.use(`${basePath}/users`, userRoutes);
@@ -142,12 +174,11 @@ console.log("Using basePath:", basePath);
     app.use(`${basePath}/recently-viewed`, recentlyViewedRoutes);
     app.use(`${basePath}/admin`, adminRoutes);
     app.use(`${basePath}/notifications`, notificationRoutes);
+    app.use(`${basePath}/conversations`, conversationRoutes);
     app.use("/public", express.static(path.join(__dirname, "../public")));
 
-    // health check
     app.get("/", (req, res) => res.json({ ok: true }));
 
-    // generic JSON error handler
     app.use((err, req, res, next) => {
       console.error("Unhandled error:", err);
       res
