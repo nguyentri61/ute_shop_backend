@@ -65,6 +65,10 @@ export const checkOutCODService = async (
   phone,
   cartItemIds,
   total,
+  subTotal,
+  shippingFee,
+  shippingDiscount,
+  productDiscount,
   shippingVoucher,
   productVoucher,
 ) => {
@@ -89,7 +93,7 @@ export const checkOutCODService = async (
       }
     }
 
-    const order = await createOrder(userId, address, phone, total, tx);
+    const order = await createOrder(userId, address, phone, total, subTotal, shippingFee, shippingDiscount, productDiscount, tx);
     await tx.orderStatusHistory.create({
       data: {
         orderId: order.id,

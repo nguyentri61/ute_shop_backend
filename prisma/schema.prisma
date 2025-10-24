@@ -31,6 +31,10 @@ model order {
   address   String
   phone     String
   createdAt DateTime  @default(now())
+  subTotal  Float     @default(0)
+  shippingFee Float   @default(0)
+  shippingDiscount Float @default(0)
+  productDiscount Float @default(0)
   total     Float     @default(0)
   status    OrderStatus @default(NEW)
 

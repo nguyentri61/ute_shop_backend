@@ -167,6 +167,13 @@ export const cartService = {
         // 4) Tổng
         const total = subTotal + computedShippingFee - shippingDiscount - productDiscount;
 
+        console.log({
+            subTotal,
+            computedShippingFee,
+            shippingDiscount,
+            productDiscount,
+            total,
+        });
         return {
             items,
             summary: {

@@ -70,12 +70,18 @@ export const checkOutCOD = async (req, res) => {
       lng,
     );
 
+    console.log("Selected cart for checkout:", result);
+
     const { order, orderItems } = await checkOutCODService(
       userId,
       address,
       phone,
       cartItemIds,
       result.summary.total,
+      result.summary.subTotal,
+      result.summary.shippingFee,
+      result.summary.shippingDiscount,
+      result.summary.productDiscount,
       shippingVoucher,
       productVoucher
     );
