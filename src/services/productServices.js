@@ -50,14 +50,13 @@ async function getProductByIdService(id) {
 
 //Đánh giá sản phẩm
 async function createReviewService({ userId, productId, rating, comment }) {
-  const orderItem = await productRepository.findDeliveredOrderItem(
-    userId,
-    productId
-  );
+  // 🔹 Kiểm tra người dùng có đơn hàng giao thành công hay chưa
+  const orderItem = await productRepository.findDeliveredOrderItem(userId, productId);
   if (!orderItem) {
     throw new Error("Bạn chưa mua sản phẩm này hoặc đơn chưa giao thành công");
   }
 
+  // 🔹 Tạo review
   const review = await productRepository.createReview({
     userId,
     productId,
@@ -65,15 +64,34 @@ async function createReviewService({ userId, productId, rating, comment }) {
     comment,
   });
 
+  // 🔹 Tính phần trăm giảm giá dựa theo giá trị đơn hàng
+  const total = orderItem.price * orderItem.quantity || 0; // giả sử có field này
+  let discountPercent = 0;
+
+  if (total > 100000) {
+    // Trên 100k được 5%
+    discountPercent = 5 + Math.floor((total - 100000) / 50000);
+    if (discountPercent > 30) discountPercent = 30; // Giới hạn tối đa 30%
+  }
+
+  if (discountPercent === 0) {
+    return { review, coupon: null };
+  }
+
+  const discount = discountPercent / 100; // chuyển sang dạng 0.05, 0.06, ...
+
+  // 🔹 Tạo voucher
   const coupon = await productRepository.createCoupon({
     code: "REVIEW-" + uuidv4().slice(0, 8).toUpperCase(),
     type: "PRODUCT",
-    description: "Mã giảm giá 15% cho lần mua tiếp theo",
+    description: `Mã giảm giá ${discountPercent}% cho lần mua tiếp theo`,
     minOrderValue: 0,
-    discount: 15000,
+    discount: discount,
     expiredAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     userId,
   });
+
+  // 🔹 Gửi thông báo cho admin
   notifyAdmin({
     message: `Đã có người dùng đánh giá sản phẩm`,
     type: "admin",

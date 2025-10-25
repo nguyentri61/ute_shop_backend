@@ -74,7 +74,7 @@ export const findCouponsForUser = async (type, userId) => {
     where: {
       type: typeEnum,
       expiredAt: { gte: new Date() },
-      OR: [{ orderId: { not: null } }, { userId: { not: null } }],
+      orderId: { not: null },
     },
     _count: { _all: true },
   });
