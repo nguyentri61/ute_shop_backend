@@ -1,4 +1,3 @@
-// src/services/categoryServices.js
 import * as categoryRepo from "../repositories/categoryRepository.js";
 
 export const listCategories = async ({ page = 1, size = 10, q = "" } = {}) => {
