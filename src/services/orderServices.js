@@ -260,7 +260,7 @@ export const getAllOrders = async () => {
       return {
         id: item.id,
         quantity: item.quantity,
-        price: discountPrice ?? price,
+        price: item.price,
         product: {
           id: product?.id,
           name: product?.name,
