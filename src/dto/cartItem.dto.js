@@ -13,6 +13,7 @@ export const productVariantDto = (variant) => {
         color: variant.color,
         size: variant.size,
         price: variant.price,
+        stock: variant.stock,
         discountPrice: variant.discountPrice,
         product: variant.product ? productDto(variant.product) : { id: variant.productId, name: "Tên sản phẩm", description: "" },
     };

@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { differenceInMinutes } from "date-fns";
+
 const prisma = new PrismaClient();
 
 import {
@@ -16,14 +17,22 @@ import {
 import { cartRepository } from "../repositories/cartRepository.js";
 import { updateCouponOrderId } from "../repositories/couponRepository.js";
 
-// order.service.js
+/* ======================================================
+   🔹 Helper: Tính giá & tồn kho từ variant
+====================================================== */
+function mapVariantPrice(variant) {
+  if (!variant) return { price: 0, discountPrice: null, stock: 0 };
+  return {
+    price: variant.price,
+    discountPrice: variant.discountPrice ?? null,
+    stock: variant.stock ?? 0,
+  };
+}
 
-export const getMyOrders = async (
-  userId,
-  status = "ALL",
-  skip = 0,
-  limit = 5
-) => {
+/* ======================================================
+   🔹 Lấy đơn hàng của user
+====================================================== */
+export const getMyOrders = async (userId, status = "ALL", skip = 0, limit = 5) => {
   const [orders, total] = await Promise.all([
     findOrdersByUserId(userId, status, skip, limit),
     countOrdersByUserId(userId, status),
@@ -35,16 +44,19 @@ export const getMyOrders = async (
     createdAt: order.createdAt,
     total: order.total,
     items: order.items.map((item) => {
-      const product = item.variant?.product;
+      const variant = item.variant;
+      const product = variant?.product;
+      const { price, discountPrice } = mapVariantPrice(variant);
+
       return {
         id: item.id,
         quantity: item.quantity,
-        price: product?.discountPrice ?? product?.price,
+        price: discountPrice ?? price,
         product: {
           id: product?.id,
           name: product?.name,
-          price: product?.price,
-          discountPrice: product?.discountPrice,
+          price,
+          discountPrice,
           image: product?.productImage?.[0]?.url || null,
         },
       };
@@ -54,11 +66,36 @@ export const getMyOrders = async (
   return { orders: mappedOrders, total };
 };
 
+/* ======================================================
+   🔹 Chi tiết item trong đơn hàng
+====================================================== */
 export const getOrderItemByOrderId = async (orderId) => {
   const orderItems = await findOrderItemByOrderId(orderId);
-  return orderItems ?? [];
+  if (!orderItems) return [];
+
+  return orderItems.map((item) => {
+    const variant = item.variant;
+    const product = variant?.product;
+    const { price, discountPrice } = mapVariantPrice(variant);
+
+    return {
+      id: item.id,
+      quantity: item.quantity,
+      price: discountPrice ?? price,
+      product: {
+        id: product?.id,
+        name: product?.name,
+        price,
+        discountPrice,
+        image: product?.productImage?.[0]?.url || null,
+      },
+    };
+  });
 };
 
+/* ======================================================
+   🔹 Thanh toán COD
+====================================================== */
 export const checkOutCODService = async (
   userId,
   address,
@@ -70,152 +107,131 @@ export const checkOutCODService = async (
   shippingDiscount,
   productDiscount,
   shippingVoucher,
-  productVoucher,
+  productVoucher
 ) => {
-  if (!address || !phone) {
-    throw new Error("Thiếu thông tin địa chỉ hoặc số điện thoại");
-  }
-  if (total <= 0) {
-    throw new Error("Tổng tiền không hợp lệ");
-  }
+  if (!address || !phone) throw new Error("Thiếu thông tin địa chỉ hoặc số điện thoại");
+  if (total <= 0) throw new Error("Tổng tiền không hợp lệ");
 
   return await prisma.$transaction(async (tx) => {
     const cartItems = await cartRepository.getCartByIds(cartItemIds, tx);
-
-    if (!cartItems || cartItems.length === 0) {
+    if (!cartItems || cartItems.length === 0)
       throw new Error("Giỏ hàng trống, không thể tạo đơn hàng");
-    }
 
-    // Kiểm tra tồn kho
+    // ✅ Kiểm tra tồn kho
     for (const item of cartItems) {
       if (item.variant.stock < item.quantity) {
-        throw new Error(`Sản phẩm ${item.productVariant.name} không đủ hàng`);
+        throw new Error(`Sản phẩm ${item.variant.product.name} không đủ hàng`);
       }
     }
 
-    const order = await createOrder(userId, address, phone, total, subTotal, shippingFee, shippingDiscount, productDiscount, tx);
+    // ✅ Tạo order chính
+    const order = await createOrder(
+      userId,
+      address,
+      phone,
+      total,
+      subTotal,
+      shippingFee,
+      shippingDiscount,
+      productDiscount,
+      tx
+    );
+
+    // ✅ Lưu lịch sử trạng thái
     await tx.orderStatusHistory.create({
-      data: {
-        orderId: order.id,
-        status: "NEW",
-      },
+      data: { orderId: order.id, status: "NEW" },
     });
+
+    // ✅ Gán voucher (nếu có)
     if (shippingVoucher)
       await updateCouponOrderId(shippingVoucher, order.id, userId, tx);
-
     if (productVoucher)
       await updateCouponOrderId(productVoucher, order.id, userId, tx);
 
-    const orderItems = await createOrderItems(order.id, cartItems, tx);
+    // ✅ Tạo các orderItem
+    await createOrderItems(order.id, cartItems, tx);
 
-    // Trừ tồn kho
+    // ✅ Trừ tồn kho
     for (const item of cartItems) {
       await tx.productVariant.update({
         where: { id: item.variantId },
         data: {
-          stock: {
-            decrement: item.quantity,
-          },
+          stock: { decrement: item.quantity },
         },
       });
     }
 
-    // Xóa cart
+    // ✅ Xóa cart sau khi đặt hàng
     await cartRepository.removeCartItems(cartItemIds, tx);
 
-    return { order, orderItems };
+    return { order };
   });
 };
 
+/* ======================================================
+   🔹 Hủy đơn hàng (cho user)
+====================================================== */
 export const cancelOrder = async (orderId, userId) => {
   const order = await findOrderById(orderId, userId);
   if (!order) throw new Error("Không tìm thấy đơn hàng của bạn");
 
-  // Nếu đơn đã bị hủy hoặc giao xong
-  if (["CANCELLED", "DELIVERED"].includes(order.status)) {
+  if (["CANCELLED", "DELIVERED"].includes(order.status))
     throw new Error("Đơn hàng không thể hủy");
-  }
 
   const minutesSinceCreated = differenceInMinutes(new Date(), order.createdAt);
 
-  // Nếu trong 30 phút đầu => cho phép hủy trực tiếp
-  if (
-    minutesSinceCreated <= 30 &&
-    ["NEW", "CONFIRMED"].includes(order.status)
-  ) {
+  if (minutesSinceCreated <= 30 && ["NEW", "CONFIRMED"].includes(order.status)) {
     await prisma.orderStatusHistory.create({
-      data: {
-        orderId: order.id,
-        status: "CANCELLED",
-      },
+      data: { orderId: order.id, status: "CANCELLED" },
     });
     return await updateOrderStatus(order.id, "CANCELLED");
   }
 
-  // Nếu đang chuẩn bị hàng => gửi yêu cầu hủy
   if (order.status === "PREPARING") {
     await prisma.orderStatusHistory.create({
-      data: {
-        orderId: order.id,
-        status: "CANCEL_REQUEST",
-      },
+      data: { orderId: order.id, status: "CANCEL_REQUEST" },
     });
     return await updateOrderStatus(order.id, "CANCEL_REQUEST");
   }
 
-  // Nếu đang giao thì không cho phép
-  if (order.status === "SHIPPING") {
+  if (order.status === "SHIPPING")
     throw new Error("Đơn hàng đang giao, không thể hủy");
-  }
 
   throw new Error("Không thể hủy đơn hàng ở trạng thái hiện tại");
 };
 
-// Cập nhật trạng thái đơn hàng (dành cho admin)
+/* ======================================================
+   🔹 Cập nhật trạng thái đơn hàng (cho admin)
+====================================================== */
 export const updateOrderStatusService = async (orderId, newStatus) => {
-  // Kiểm tra đơn hàng tồn tại
   const order = await findOrderById(orderId);
-  if (!order) {
-    throw new Error("Không tìm thấy đơn hàng");
-  }
+  if (!order) throw new Error("Không tìm thấy đơn hàng");
 
-  // Kiểm tra logic chuyển trạng thái
   const currentStatus = order.status;
 
-  // Một số quy tắc chuyển trạng thái (có thể điều chỉnh theo yêu cầu)
-  if (currentStatus === "DELIVERED" && newStatus !== "DELIVERED") {
-    throw new Error(
-      "Đơn hàng đã giao thành công không thể thay đổi trạng thái"
-    );
-  }
+  if (currentStatus === "DELIVERED" && newStatus !== "DELIVERED")
+    throw new Error("Đơn hàng đã giao thành công không thể thay đổi trạng thái");
 
-  if (currentStatus === "CANCELLED" && newStatus !== "CANCELLED") {
+  if (currentStatus === "CANCELLED" && newStatus !== "CANCELLED")
     throw new Error("Đơn hàng đã hủy không thể thay đổi trạng thái");
-  }
 
-  // Cập nhật trạng thái đơn hàng và thêm lịch sử
   const updatedOrder = await prisma.$transaction(async (tx) => {
-    // 1️⃣ Cập nhật trạng thái đơn hàng
     const updated = await tx.order.update({
       where: { id: orderId },
       data: { status: newStatus },
     });
-
-    // 2️⃣ Lưu lịch sử thay đổi
     await tx.orderStatusHistory.create({
-      data: {
-        orderId,
-        status: newStatus,
-      },
+      data: { orderId, status: newStatus },
     });
-
     return updated;
   });
 
   return updatedOrder;
 };
 
-// Lấy tất cả đơn hàng (dành cho admin)
+/* ======================================================
+   🔹 Lấy tất cả đơn hàng (cho admin)
+====================================================== */
 export const getAllOrders = async () => {
   const orders = await findAllOrders();
 
@@ -223,6 +239,10 @@ export const getAllOrders = async () => {
     id: order.id,
     status: order.status,
     createdAt: order.createdAt,
+    shippingFee: order.shippingFee,
+    shippingDiscount: order.shippingDiscount,
+    productDiscount: order.productDiscount,
+    subTotal: order.subTotal,
     total: order.total,
     address: order.address,
     phone: order.phone,
@@ -232,21 +252,30 @@ export const getAllOrders = async () => {
       fullName: order.user?.fullName,
       phone: order.user?.phone,
     },
-    items: order.items.map((item) => ({
-      id: item.id,
-      quantity: item.quantity,
-      price: item.variant?.product?.discountPrice,
-      product: {
-        id: item.variant?.product?.id,
-        name: item.variant?.product?.name,
-        price: item.variant?.product?.price,
-        discountPrice: item.variant?.product?.discountPrice,
-        image: item.variant?.product?.productImage?.[0]?.url || null,
-      },
-    })),
+    items: order.items.map((item) => {
+      const variant = item.variant;
+      const product = variant?.product;
+      const { price, discountPrice } = mapVariantPrice(variant);
+
+      return {
+        id: item.id,
+        quantity: item.quantity,
+        price: discountPrice ?? price,
+        product: {
+          id: product?.id,
+          name: product?.name,
+          price,
+          discountPrice,
+          image: product?.productImage?.[0]?.url || null,
+        },
+      };
+    }),
   }));
 };
 
+/* ======================================================
+   🔹 Lấy chi tiết đơn hàng theo ID
+====================================================== */
 export const getOrderDetailById = async (orderId) => {
   const order = await getOrderDetail(orderId);
   if (!order) throw new Error("Không tìm thấy đơn hàng");
