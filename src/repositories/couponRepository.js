@@ -170,7 +170,7 @@ export const countExpiredCoupons = async () => {
 export const avgDiscountActiveCoupons = async () => {
   const r = await prisma.coupon.aggregate({
     _avg: { discount: true },
-    where: { expiredAt: { gt: new Date() } },
+    where: { expiredAt: { gt: new Date() }, discount: { gt: 1 } },
   });
   return r._avg.discount ?? 0;
 };

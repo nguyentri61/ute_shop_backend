@@ -84,9 +84,9 @@ export const findByOrderId = async (orderId) => {
   return orderItems;
 };
 
-export const createOrder = (userId, address, phone, total, client = prisma) => {
+export const createOrder = (userId, address, phone, total, subTotal, shippingFee, shippingDiscount, productDiscount, client = prisma) => {
   return client.order.create({
-    data: { userId, address, phone, total },
+    data: { userId, address, phone, total, subTotal, shippingFee, shippingDiscount, productDiscount },
   });
 };
 
