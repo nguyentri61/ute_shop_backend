@@ -1,7 +1,7 @@
 // src/routes/adminRoutes.js
 import express from "express";
 import { authMiddleware, adminMiddleware } from "../middlewares/authMiddlewares.js";
-
+import { uploadMedia } from "../middlewares/uploadMedia.js";
 import {
     // ADMIN - coupons
     getCouponStats,
@@ -34,6 +34,15 @@ import {
     unblockAdminUser,    // <-- mở chặn
     changeUserRole,      // <-- đổi vai trò
 } from "../controllers/adminUserController.js";
+
+import {
+    listAdminProducts,
+    getAdminProduct,
+    createAdminProduct,
+    updateAdminProduct,
+    deleteAdminProduct,
+} from "../controllers/adminProductController.js";
+
 
 const router = express.Router();
 
@@ -105,5 +114,15 @@ router.patch("/users/:id/unblock", adminMiddleware, unblockAdminUser);
 
 // PATCH /api/admin/users/:id/role -> thay đổi vai trò (body: { role: "ADMIN"|"USER" })
 router.patch("/users/:id/role", adminMiddleware, changeUserRole);
+router.get("/products", adminMiddleware, listAdminProducts);
+router.get("/products/:id", adminMiddleware, getAdminProduct);
 
+// POST /api/admin/products
+router.post("/products", adminMiddleware, uploadMedia.array("files", 10), createAdminProduct);
+
+// PATCH /api/admin/products/:id
+router.patch("/products/:id", adminMiddleware, uploadMedia.array("files", 10), updateAdminProduct);
+
+// DELETE
+router.delete("/products/:id", adminMiddleware, deleteAdminProduct);
 export default router;
