@@ -145,6 +145,11 @@ model user {
   favorites favorite[]
   recentlyViewed recentlyViewed[]
   notifications   notification[] 
+  // Quan hệ ngược với Conversation.user
+  conversations conversation[] @relation("UserConversations")
+
+  // Quan hệ ngược với Message.sender
+  sentMessages message[] @relation("SentMessages")
 }
 
 model review {
@@ -239,4 +244,62 @@ model orderStatusHistory {
   createdAt DateTime @default(now())
 
   order     order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+// Enum cho loại tin nhắn (hỗ trợ ảnh/video)
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+}
+
+// Model Conversation (Cuộc hội thoại)
+// Mỗi cuộc hội thoại là giữa 1 User (khách) và Admin
+model conversation {
+  id     String @id @default(uuid())
+  
+  // User (khách hàng) sở hữu cuộc hội thoại này
+  // Khi User bị xóa, hội thoại của họ cũng bị xóa (onDelete: Cascade)
+  user   user   @relation("UserConversations", fields: [userId], references: [id], onDelete: Cascade)
+  userId String // Foreign key (chỉ tới user khách hàng)
+
+  // Danh sách các tin nhắn trong hội thoại
+  messages message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId]) // Index để tìm hội thoại của user nhanh hơn
+}
+
+// Model Message (Tin nhắn)
+model message {
+  id     String @id @default(uuid())
+  
+  // Hội thoại mà tin nhắn này thuộc về
+  conversation   conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String       // Foreign key
+
+  // Người gửi (có thể là User khách, hoặc User có role ADMIN)
+  // onDelete: NoAction để nếu xóa User, tin nhắn vẫn còn (để lưu trữ)
+  sender   user   @relation("SentMessages", fields: [senderId], references: [id], onDelete: NoAction)
+  senderId String // Foreign key (chỉ tới user gửi)
+
+  // Loại tin nhắn: TEXT, IMAGE, VIDEO
+  type MessageType @default(TEXT)
+
+  // Nội dung (nếu là TEXT)
+  // @db.Text hỗ trợ nội dung dài
+  content String? @db.Text
+
+  // Đường dẫn file (nếu là IMAGE hoặc VIDEO)
+  mediaUrl String?
+
+  // Trạng thái đã đọc
+  // Mặc định là false, khi người nhận (admin hoặc user) vào xem thì cập nhật true
+  isRead Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId]) // Index để load tin nhắn theo hội thoại
+  @@index([senderId])
 }
