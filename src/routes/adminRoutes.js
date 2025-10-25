@@ -1,7 +1,7 @@
 import express from "express";
 import { authMiddleware, adminMiddleware } from "../middlewares/authMiddlewares.js";
 import {
-    // ADMIN
+    // ADMIN - coupons
     getCouponStats,
     getCouponDistribution,
     getExpiringCoupons,
@@ -12,9 +12,18 @@ import {
 } from "../controllers/couponController.js";
 import { getDashboardStats, weeklySales, categoryShare } from "../controllers/dashboardController.js";
 
+// NEW: category controller
+import {
+    listCategories,
+    getCategory,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+} from "../controllers/categoryController.js";
+
 const router = express.Router();
 
-// Tất cả endpoint dashboard yêu cầu đăng nhập
+// Tất cả endpoint dashboard / admin yêu cầu đăng nhập
 router.use(authMiddleware);
 
 // Thống kê tổng quan (cards)
@@ -24,13 +33,9 @@ router.get("/dashboard/stats", getDashboardStats);
 router.get("/dashboard/weekly-sales", weeklySales);
 router.get("/dashboard/category-share", categoryShare);
 
-// GET /admin/coupons/stats
+// --- COUPONS (ADMIN) -----------------------------------------
 router.get("/coupons/stats", adminMiddleware, getCouponStats);
-
-// GET /admin/coupons/distribution
 router.get("/coupons/distribution", adminMiddleware, getCouponDistribution);
-
-// GET /admin/coupons/expiring?days=30
 router.get("/coupons/expiring", adminMiddleware, getExpiringCoupons);
 
 // GET /admin/coupons?q=&type=&status=&userId=&page=&size=
@@ -44,5 +49,23 @@ router.patch("/coupons/:id", adminMiddleware, updateCoupon);
 
 // DELETE /admin/coupons/:id
 router.delete("/coupons/:id", adminMiddleware, deleteCoupon);
+
+// --- CATEGORIES (ADMIN) --------------------------------------
+// GET /admin/categories?q=&page=&size=
+router.get("/categories", adminMiddleware, listCategories);
+
+// GET /admin/categories/:id
+router.get("/categories/:id", adminMiddleware, getCategory);
+
+// POST /admin/categories
+// body: { name, icon? }
+router.post("/categories", adminMiddleware, createCategory);
+
+// PATCH /admin/categories/:id
+// body: { name?, icon? }
+router.patch("/categories/:id", adminMiddleware, updateCategory);
+
+// DELETE /admin/categories/:id
+router.delete("/categories/:id", adminMiddleware, deleteCategory);
 
 export default router;
