@@ -77,7 +77,7 @@ const corsOptions = {
     if (FRONTENDS.includes(origin)) return callback(null, true);
     return callback(new Error("Not allowed by CORS"), false);
   },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
   allowedHeaders: [
     "Content-Type",
     "Authorization",
