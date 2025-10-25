@@ -132,6 +132,7 @@ model user {
   gender    String?
   phone    String?
   role      UserRole  @default(USER)
+  blocked   Boolean   @default(false)
 
   orders order[]
   cart   cartItem[]
