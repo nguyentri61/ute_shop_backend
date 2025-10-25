@@ -63,9 +63,6 @@ model product {
   id            String           @id @default(uuid())
   name          String
   description   String?
-  price         Float
-  discountPrice Float?
-  stock         Int
   viewCount     Int              @default(0)
   createdAt     DateTime         @default(now())
   categoryId    String

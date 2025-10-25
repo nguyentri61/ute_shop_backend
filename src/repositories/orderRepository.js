@@ -1,8 +1,9 @@
 import { PrismaClient } from "@prisma/client";
-
 const prisma = new PrismaClient();
 
-// order.repo.js
+/* ======================================================
+   🔹 Lấy đơn hàng theo user
+====================================================== */
 export const findOrdersByUserId = async (
   userId,
   status = "ALL",
@@ -12,7 +13,7 @@ export const findOrdersByUserId = async (
   const whereCondition = { userId };
   if (status !== "ALL") whereCondition.status = status;
 
-  return await prisma.order.findMany({
+  return prisma.order.findMany({
     where: whereCondition,
     include: {
       items: {
@@ -23,8 +24,6 @@ export const findOrdersByUserId = async (
                 select: {
                   id: true,
                   name: true,
-                  price: true,
-                  discountPrice: true,
                   productImage: { take: 1, select: { url: true } },
                 },
               },
@@ -39,25 +38,30 @@ export const findOrdersByUserId = async (
   });
 };
 
+/* ======================================================
+   🔹 Đếm đơn hàng theo user
+====================================================== */
 export const countOrdersByUserId = async (userId, status = "ALL") => {
   const whereCondition = { userId };
   if (status !== "ALL") whereCondition.status = status;
-  return await prisma.order.count({ where: whereCondition });
+  return prisma.order.count({ where: whereCondition });
 };
 
+/* ======================================================
+   🔹 Lấy item theo orderId
+====================================================== */
 export const findOrderItemByOrderId = async (orderId) => {
-  const orderItems = await prisma.orderItem.findMany({
+  return prisma.orderItem.findMany({
     where: { orderId },
     include: {
-      product: {
-        select: {
-          id: true,
-          name: true,
-          price: true,
-          discountPrice: true,
-          productImage: {
-            take: 1,
-            select: { url: true },
+      variant: {
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              productImage: { take: 1, select: { url: true } },
+            },
           },
         },
       },
@@ -71,37 +75,73 @@ export const findOrderItemByOrderId = async (orderId) => {
       },
     },
   });
-
-  return orderItems;
 };
 
+/* ======================================================
+   🔹 Lấy order theo ID
+====================================================== */
 export const findByOrderId = async (orderId) => {
-  const orderItems = await prisma.order.findFirst({
-    where: { orderId },
-    include: {},
+  return prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      items: {
+        include: {
+          variant: {
+            include: {
+              product: { include: { productImage: true } },
+            },
+          },
+        },
+      },
+    },
   });
-
-  return orderItems;
 };
 
-export const createOrder = (userId, address, phone, total, subTotal, shippingFee, shippingDiscount, productDiscount, client = prisma) => {
+/* ======================================================
+   🔹 Tạo đơn hàng
+====================================================== */
+export const createOrder = (
+  userId,
+  address,
+  phone,
+  total,
+  subTotal,
+  shippingFee,
+  shippingDiscount,
+  productDiscount,
+  client = prisma
+) => {
   return client.order.create({
-    data: { userId, address, phone, total, subTotal, shippingFee, shippingDiscount, productDiscount },
+    data: {
+      userId,
+      address,
+      phone,
+      total,
+      subTotal,
+      shippingFee,
+      shippingDiscount,
+      productDiscount,
+    },
   });
 };
 
+/* ======================================================
+   🔹 Tạo order item (từ giỏ hàng)
+====================================================== */
 export const createOrderItems = (orderId, cartItems, client = prisma) => {
   return client.orderItem.createMany({
     data: cartItems.map((c) => ({
       orderId,
       variantId: c.variantId,
       quantity: c.quantity,
-      price: c.variant.price,
+      price: c.variant.discountPrice ?? c.variant.price, // ⚡ lấy giá variant (ưu tiên discount)
     })),
   });
 };
 
-// Cập nhật trạng thái đơn hàng
+/* ======================================================
+   🔹 Cập nhật trạng thái đơn hàng
+====================================================== */
 export const updateOrderStatus = (orderId, newStatus, client = prisma) => {
   return client.order.update({
     where: { id: orderId },
@@ -109,10 +149,11 @@ export const updateOrderStatus = (orderId, newStatus, client = prisma) => {
   });
 };
 
-// Tìm đơn hàng theo ID (kèm items và product)
-// Lấy tất cả đơn hàng (cho admin)
+/* ======================================================
+   🔹 Lấy tất cả đơn hàng (Admin)
+====================================================== */
 export const findAllOrders = async (client = prisma) => {
-  const orders = await client.order.findMany({
+  return client.order.findMany({
     include: {
       items: {
         include: {
@@ -122,12 +163,7 @@ export const findAllOrders = async (client = prisma) => {
                 select: {
                   id: true,
                   name: true,
-                  price: true,
-                  discountPrice: true,
-                  productImage: {
-                    take: 1,
-                    select: { url: true },
-                  },
+                  productImage: { take: 1, select: { url: true } },
                 },
               },
             },
@@ -135,19 +171,16 @@ export const findAllOrders = async (client = prisma) => {
         },
       },
       user: {
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-        },
+        select: { id: true, fullName: true, email: true },
       },
     },
     orderBy: { createdAt: "desc" },
   });
-
-  return orders;
 };
 
+/* ======================================================
+   🔹 Lấy đơn hàng chi tiết theo ID
+====================================================== */
 export const findOrderById = async (orderId, userId, client = prisma) => {
   const order = await client.order.findUnique({
     where: { id: orderId },
@@ -160,12 +193,7 @@ export const findOrderById = async (orderId, userId, client = prisma) => {
                 select: {
                   id: true,
                   name: true,
-                  price: true,
-                  discountPrice: true,
-                  productImage: {
-                    take: 1,
-                    select: { url: true },
-                  },
+                  productImage: { take: 1, select: { url: true } },
                 },
               },
             },
@@ -175,15 +203,16 @@ export const findOrderById = async (orderId, userId, client = prisma) => {
     },
   });
 
-  // Nếu có userId thì check xem có đúng là chủ đơn không
-  if (order && userId && order.userId !== userId) {
-    return null; // không phải của user này
-  }
-
+  // Nếu có userId => chỉ trả về nếu là đơn của user đó
+  if (order && userId && order.userId !== userId) return null;
   return order;
 };
+
+/* ======================================================
+   🔹 Lấy chi tiết đơn hàng (Admin / User)
+====================================================== */
 export const getOrderDetail = async (orderId) => {
-  const order = await prisma.order.findUnique({
+  return prisma.order.findUnique({
     where: { id: orderId },
     include: {
       user: {
@@ -197,8 +226,7 @@ export const getOrderDetail = async (orderId) => {
                 select: {
                   id: true,
                   name: true,
-                  price: true,
-                  discountPrice: true,
+                  productImage: { take: 1, select: { url: true } },
                 },
               },
             },
@@ -210,5 +238,4 @@ export const getOrderDetail = async (orderId) => {
       },
     },
   });
-  return order;
 };
