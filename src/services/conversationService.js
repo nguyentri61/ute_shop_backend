@@ -128,6 +128,7 @@ export const sendMessageService = async ({
       } else {
         console.log();
         ioChat.to("admin").emit("new_message", savedMessage);
+        ioChat.to("admin").emit("refresh_conversations");
       }
     }
   } catch (err) {
