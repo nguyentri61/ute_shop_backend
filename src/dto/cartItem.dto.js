@@ -21,9 +21,12 @@ export const productVariantDto = (variant) => {
 
 
 export const cartItemDto = (cartItem) => {
+    const imageUrl = cartItem?.variant?.product?.productImage?.[0]?.url ?? null;
+
     return {
         id: cartItem.id,
         quantity: cartItem.quantity,
+        image: imageUrl,
         variant: cartItem.variant ? productVariantDto(cartItem.variant) : null,
     };
 };
