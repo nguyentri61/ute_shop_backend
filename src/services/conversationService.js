@@ -125,6 +125,7 @@ export const sendMessageService = async ({
       // Gửi riêng cho đối tượng còn lại
       if (sender.role === "ADMIN") {
         ioChat.to(`user:${conv.userId}`).emit("new_message", savedMessage);
+        ioChat.to("admin").emit("refresh_conversations");
       } else {
         console.log();
         ioChat.to("admin").emit("new_message", savedMessage);
