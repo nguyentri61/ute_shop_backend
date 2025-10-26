@@ -42,11 +42,7 @@ export const createProduct = async (payload = {}) => {
     const files = payload.files ?? [];
     const user = payload.user ?? null;
 
-    // Debug: log what we received (temporarily)
-    console.log("createProduct payload.body:", body);
-    console.log("createProduct files.length:", (files && files.length) || 0);
-
-    // If body is string (rare), try parse
+    // parse body if string
     let parsedBody = body;
     if (typeof body === "string") {
         try {
@@ -56,7 +52,6 @@ export const createProduct = async (payload = {}) => {
         }
     }
 
-    // Safely parse possible JSON-string fields
     const safeParse = (val) => {
         if (Array.isArray(val)) return val;
         if (!val && val !== "") return [];
@@ -75,19 +70,24 @@ export const createProduct = async (payload = {}) => {
     const categoryId = parsedBody.categoryId != null ? String(parsedBody.categoryId).trim() : "";
     const description = parsedBody.description != null ? String(parsedBody.description) : null;
 
+    const variants = safeParse(parsedBody.variants); // array of objects
+    const providedImages = safeParse(parsedBody.images); // array of URLs (strings)
+
     if (!name || !categoryId) {
         const err = new Error("Name and categoryId are required");
         err.code = "INVALID_INPUT";
         throw err;
     }
 
-    const variants = safeParse(parsedBody.variants); // array of objects
-    const providedImages = safeParse(parsedBody.images); // array of URLs (strings)
+    // REQUIRE at least one variant on create
+    if (!Array.isArray(variants) || variants.length === 0) {
+        const err = new Error("Phải có ít nhất một variant khi tạo sản phẩm");
+        err.code = "INVALID_INPUT";
+        throw err;
+    }
 
-    // Convert uploaded files to public URL paths (adjust if your upload destination differs)
-    // If uploadMedia destination = "public/uploads/messages", then public url path is `/uploads/messages/<filename>`
+    // Convert uploaded files to public URL paths
     const fileUrls = (files || []).map((f) => {
-        // prefer f.filename; but if not present try f.path -> extract basename
         const filename = f.filename || (f.path ? f.path.split("/").pop().split("\\").pop() : null);
         return filename ? `/uploads/messages/${filename}` : null;
     }).filter(Boolean);
@@ -108,28 +108,21 @@ export const createProduct = async (payload = {}) => {
         });
 
         if (Array.isArray(variants) && variants.length > 0) {
-            for (const v of variants) {
-                // guard for missing fields
-                await tx.productVariant.create({
-                    data: {
-                        productId: p.id,
-                        color: v.color ?? null,
-                        size: v.size ?? null,
-                        price: v.price != null ? Number(v.price) : 0,
-                        discountPrice:
-                            v.discountPrice != null ? (v.discountPrice === "" ? null : Number(v.discountPrice)) : null,
-                        stock: v.stock != null ? Number(v.stock) : 0,
-                    },
-                });
-            }
+            const createVariants = variants.map((v) => ({
+                productId: p.id,
+                color: v.color ?? null,
+                size: v.size ?? null,
+                price: v.price != null ? Number(v.price) : 0,
+                discountPrice:
+                    v.discountPrice != null ? (v.discountPrice === "" ? null : Number(v.discountPrice)) : null,
+                stock: v.stock != null ? Number(v.stock) : 0,
+            }));
+            await tx.productVariant.createMany({ data: createVariants });
         }
 
         if (allImageUrls.length > 0) {
-            for (const url of allImageUrls) {
-                await tx.productImage.create({
-                    data: { productId: p.id, url },
-                });
-            }
+            const createImgs = allImageUrls.map((url) => ({ productId: p.id, url }));
+            await tx.productImage.createMany({ data: createImgs });
         }
 
         const productWithRelations = await tx.product.findUnique({
@@ -142,90 +135,132 @@ export const createProduct = async (payload = {}) => {
 
     return created;
 };
+
 export const updateProduct = async (id, opts = {}) => {
     const { body = {}, files = [], user } = opts;
 
-    // safe-parse variants/images if sent as JSON string (common when sending FormData)
+    // parse variants
     let variants = body.variants ?? [];
     if (typeof variants === "string") {
-        try {
-            variants = JSON.parse(variants);
-        } catch (e) {
-            variants = [];
-        }
+        try { variants = JSON.parse(variants); } catch (e) { variants = []; }
     }
+    // ensure array
+    variants = Array.isArray(variants) ? variants : [];
 
+    // parse images from client (string/json/array)
     let imagesFromClient = body.images ?? [];
     if (typeof imagesFromClient === "string") {
-        try {
-            imagesFromClient = JSON.parse(imagesFromClient);
-        } catch (e) {
-            imagesFromClient = [];
-        }
+        try { imagesFromClient = JSON.parse(imagesFromClient); } catch (e) { imagesFromClient = []; }
     }
     imagesFromClient = Array.isArray(imagesFromClient) ? imagesFromClient.map((u) => (u ? String(u).trim() : "")).filter(Boolean) : [];
 
+    // Normalize absolute URLs -> pathname so comparison with DB (which stores '/uploads/..') succeeds
+    imagesFromClient = imagesFromClient.map(u => {
+        if (/^https?:\/\//i.test(u)) {
+            try {
+                return new URL(u).pathname; // '/uploads/abc.png'
+            } catch (e) {
+                return u;
+            }
+        }
+        return u;
+    });
+
+    // parse optional explicit deleteVariantIds (client must send explicit)
+    let deleteVariantIds = body.deleteVariantIds ?? [];
+    if (typeof deleteVariantIds === "string") {
+        try { deleteVariantIds = JSON.parse(deleteVariantIds); } catch (e) { deleteVariantIds = []; }
+    }
+    deleteVariantIds = Array.isArray(deleteVariantIds) ? deleteVariantIds.map(String).filter(Boolean) : [];
+
     // validate product exists
-    const existing = await prisma.product.findUnique({ where: { id }, include: { productImage: true } });
+    const existing = await prisma.product.findUnique({ where: { id }, include: { productImage: true, variants: true } });
     if (!existing) {
         const err = new Error("Product not found");
         err.code = "NOT_FOUND";
         throw err;
     }
 
-    // decide base path for uploaded files -> adjust to match your upload middleware destination
-    const uploadsBasePath = "/uploads/messages"; // <--- change if you store to /uploads/products etc.
+    const uploadsBasePath = "/uploads/messages"; // or /uploads/products if you store there
 
-    // convert multer files to public URL paths
+    // convert multer files to public URL paths (match DB scheme)
     const fileUrls = Array.isArray(files)
         ? files.map((f) => `${uploadsBasePath}/${f.filename}`)
         : [];
 
-    // final images array: existing URLs from client + uploaded file urls
+    // final images = client existing + newly uploaded
     const finalImageUrls = [...imagesFromClient, ...fileUrls];
 
-    // start transaction
+    // transaction...
     const updated = await prisma.$transaction(async (tx) => {
-        // 1) update product basic fields (only provided ones)
         const updateData = {};
         if (body.name !== undefined) updateData.name = body.name;
         if (body.description !== undefined) updateData.description = body.description;
         if (body.categoryId !== undefined) updateData.categoryId = body.categoryId;
 
-        // apply update if there're fields to change
         if (Object.keys(updateData).length > 0) {
             await tx.product.update({ where: { id }, data: updateData });
         }
 
-        // 2) handle variants: if client sent variants array -> replace existing variants with new ones
-        if (Array.isArray(variants)) {
-            // delete old variants
-            await tx.productVariant.deleteMany({ where: { productId: id } });
+        // VARIANTS:
+        // - variants with id => update those (only if they belong to this product)
+        // - variants without id => create new
+        const variantsToUpdate = variants.filter(v => v.id);
+        const variantsToCreate = variants.filter(v => !v.id);
 
-            // create new variants if any
-            if (variants.length > 0) {
-                // prepare create data
-                const createVariants = variants.map((v) => ({
-                    productId: id,
-                    color: v.color ?? null,
-                    size: v.size ?? null,
-                    price: v.price != null ? Number(v.price) : 0,
-                    discountPrice: v.discountPrice != null ? (v.discountPrice === "" ? null : Number(v.discountPrice)) : null,
-                    stock: v.stock != null ? Number(v.stock) : 0,
-                }));
-                // use createMany for performance (bulk)
-                await tx.productVariant.createMany({ data: createVariants });
-            }
+        // update existing variants safely (use updateMany to avoid throwing when id invalid)
+        for (const v of variantsToUpdate) {
+            const data = {
+                color: v.color ?? null,
+                size: v.size ?? null,
+                price: v.price != null ? Number(v.price) : 0,
+                discountPrice: v.discountPrice != null ? (v.discountPrice === "" ? null : Number(v.discountPrice)) : null,
+                stock: v.stock != null ? Number(v.stock) : 0,
+            };
+            // update only when id belongs to productId
+            await tx.productVariant.updateMany({
+                where: { id: v.id, productId: id },
+                data,
+            });
         }
 
-        // 3) handle images: keep images that are still in finalImageUrls, remove others, add new ones
+        // create new variants
+        if (variantsToCreate.length > 0) {
+            const createVariants = variantsToCreate.map((v) => ({
+                productId: id,
+                color: v.color ?? null,
+                size: v.size ?? null,
+                price: v.price != null ? Number(v.price) : 0,
+                discountPrice: v.discountPrice != null ? (v.discountPrice === "" ? null : Number(v.discountPrice)) : null,
+                stock: v.stock != null ? Number(v.stock) : 0,
+            }));
+            await tx.productVariant.createMany({ data: createVariants });
+        }
+
+        // If client asked to delete specific variants, do it (explicit)
+        if (deleteVariantIds.length > 0) {
+            // delete only variants that belong to this product
+            await tx.productVariant.deleteMany({
+                where: { id: { in: deleteVariantIds }, productId: id },
+            });
+        }
+
+        // Ensure after operations there is at least one variant remaining for the product
+        const finalVariantCount = await tx.productVariant.count({ where: { productId: id } });
+        if (finalVariantCount === 0) {
+            const err = new Error("Sản phẩm phải có ít nhất một variant");
+            err.code = "INVALID_INPUT";
+            throw err;
+        }
+
+        // IMAGES: remove ones not present, add new ones
         const currentImages = await tx.productImage.findMany({ where: { productId: id } });
-        const currentUrls = currentImages.map((ci) => ci.url);
+        const currentUrls = currentImages.map(ci => ci.url);
 
         // compute deletes (images currently in DB but NOT in finalImageUrls)
         const toDelete = currentImages.filter((ci) => !finalImageUrls.includes(ci.url));
         if (toDelete.length > 0) {
-            const idsToDelete = toDelete.map((d) => d.id);
+            const idsToDelete = toDelete.map(d => d.id);
             await tx.productImage.deleteMany({ where: { id: { in: idsToDelete } } });
         }
 
@@ -236,7 +271,6 @@ export const updateProduct = async (id, opts = {}) => {
             await tx.productImage.createMany({ data: createImgs });
         }
 
-        // 4) return updated product with relations
         const product = await tx.product.findUnique({
             where: { id },
             include: { variants: true, productImage: true, category: true },
@@ -247,6 +281,7 @@ export const updateProduct = async (id, opts = {}) => {
 
     return updated;
 };
+
 
 export const removeProduct = async (id) => {
     return productRepo.deleteProduct(id);

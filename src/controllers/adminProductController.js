@@ -107,6 +107,7 @@ export const createAdminProduct = async (req, res) => {
     }
 };
 
+// controller: updateAdminProduct
 export const updateAdminProduct = async (req, res) => {
     try {
         const { id } = req.params;
@@ -116,23 +117,39 @@ export const updateAdminProduct = async (req, res) => {
             throw err;
         }
 
-        // payload may contain JSON-strings for variants/images
-        const body = { ...(req.body || {}) };
-        body.variants = safeParseJson(body.variants, []);
-        body.images = safeParseJson(body.images, []);
+        // copy body
+        const rawBody = { ...(req.body || {}) };
 
-        // normalize fields if present
-        if (body.name) body.name = String(body.name).trim();
-        if (body.description) body.description = String(body.description).trim();
-        if (body.categoryId) body.categoryId = String(body.categoryId).trim();
+        // support multiple possible field names sent by various frontends
+        const rawImages =
+            rawBody.images ??
+            rawBody.existingImages ??
+            rawBody["existingImages[]"] ??
+            rawBody["existingImages"] ??
+            rawBody.existing_images ??
+            [];
 
-        // files from multer (if any)
+        // ensure body.images ends up as JSON-string or array for safeParseJson usage
+        rawBody.images = typeof rawImages === "string" ? rawImages : JSON.stringify(rawImages);
+
+        // variants may be JSON string
+        rawBody.variants = rawBody.variants ?? rawBody.variants_json ?? rawBody.variantsString ?? rawBody.variants;
+        // now safe-parse
+        rawBody.variants = safeParseJson(rawBody.variants, []);
+        rawBody.images = safeParseJson(rawBody.images, []);
+
+        // normalize simple fields
+        if (rawBody.name) rawBody.name = String(rawBody.name).trim();
+        if (rawBody.description) rawBody.description = String(rawBody.description).trim();
+        if (rawBody.categoryId) rawBody.categoryId = String(rawBody.categoryId).trim();
+
         const files = req.files || [];
         const user = req.user || null;
 
         const payload = {
-            ...body,
-            files, // uploaded files to be processed by service
+            body: rawBody,
+            files,
+            user,
             updatedBy: user?.id ?? null,
         };
 
@@ -145,6 +162,7 @@ export const updateAdminProduct = async (req, res) => {
         return errorResponse(res, err.message || "Lỗi khi cập nhật sản phẩm", 500);
     }
 };
+
 export const deleteAdminProduct = async (req, res) => {
     try {
         const { id } = req.params;
