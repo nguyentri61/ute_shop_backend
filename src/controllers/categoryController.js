@@ -33,7 +33,7 @@ export const createCategory = async (req, res) => {
         // if there's an uploaded file -> build public path
         let iconPath = null;
         if (req.file) {
-            iconPath = fileToPublicPath(req.file, "categories");
+            iconPath = fileToPublicPath(req.file, "messages");
         } else if (req.body.icon) {
             // client may send relative path or absolute URL string
             iconPath = String(req.body.icon).trim() || null;
@@ -69,7 +69,7 @@ export const updateCategory = async (req, res) => {
         // - else if body.icon provided -> can be string (path) or empty (to remove)
         let newIcon;
         if (req.file) {
-            newIcon = fileToPublicPath(req.file, "categories");
+            newIcon = fileToPublicPath(req.file, "messages");
         } else if ("icon" in req.body) {
             const v = req.body.icon;
             newIcon = v ? String(v).trim() : null; // null -> remove
