@@ -13,9 +13,11 @@ import {
   findAllOrders,
   countOrdersByUserId,
   getOrderDetail,
+  findOrderWithItems,
 } from "../repositories/orderRepository.js";
 import { cartRepository } from "../repositories/cartRepository.js";
 import { updateCouponOrderId } from "../repositories/couponRepository.js";
+import { restoreStockForCancelledOrder } from "../repositories/productRepository.js";
 
 /* ======================================================
    🔹 Helper: Tính giá & tồn kho từ variant
@@ -172,7 +174,7 @@ export const checkOutCODService = async (
    🔹 Hủy đơn hàng (cho user)
 ====================================================== */
 export const cancelOrder = async (orderId, userId) => {
-  const order = await findOrderById(orderId, userId);
+  const order = await findOrderWithItems(orderId, userId);
   if (!order) throw new Error("Không tìm thấy đơn hàng của bạn");
 
   if (["CANCELLED", "DELIVERED"].includes(order.status))
@@ -181,21 +183,30 @@ export const cancelOrder = async (orderId, userId) => {
   const minutesSinceCreated = differenceInMinutes(new Date(), order.createdAt);
 
   if (minutesSinceCreated <= 30 && ["NEW", "CONFIRMED"].includes(order.status)) {
-    await prisma.orderStatusHistory.create({
-      data: { orderId: order.id, status: "CANCELLED" },
+    await prisma.$transaction(async (tx) => {
+      await tx.orderStatusHistory.create({
+        data: { orderId: order.id, status: "CANCELLED" },
+      });
+
+      await restoreStockForCancelledOrder(order.items, tx);
+
+      await tx.order.update({
+        where: { id: order.id },
+        data: { status: "CANCELLED" },
+      });
     });
-    return await updateOrderStatus(order.id, "CANCELLED");
+    return { message: "Đã hủy đơn hàng và hoàn lại tồn kho" };
   }
 
   if (order.status === "PREPARING") {
     await prisma.orderStatusHistory.create({
       data: { orderId: order.id, status: "CANCEL_REQUEST" },
     });
-    return await updateOrderStatus(order.id, "CANCEL_REQUEST");
+    return await prisma.order.update({
+      where: { id: order.id },
+      data: { status: "CANCEL_REQUEST" },
+    });
   }
-
-  if (order.status === "SHIPPING")
-    throw new Error("Đơn hàng đang giao, không thể hủy");
 
   throw new Error("Không thể hủy đơn hàng ở trạng thái hiện tại");
 };
@@ -260,7 +271,7 @@ export const getAllOrders = async () => {
       return {
         id: item.id,
         quantity: item.quantity,
-        price: discountPrice ?? price,
+        price: item.price,
         product: {
           id: product?.id,
           name: product?.name,
