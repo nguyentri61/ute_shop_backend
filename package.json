@@ -4,7 +4,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
@@ -28,6 +29,8 @@
     "nodemailer": "^7.0.5",
     "react-hot-toast": "^2.6.0",
     "socket.io": "^4.8.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "uuid": "^13.0.0",
     "validator": "^13.15.15"
   },

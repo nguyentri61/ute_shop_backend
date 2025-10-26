@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import http from "http";
 import { initNotification } from "./services/notificationService.js";
 import { initChatSocket } from "./services/conversationService.js";
+import { setupSwagger } from "../swagger.js";
 
 dotenv.config();
 
@@ -18,7 +19,7 @@ const app = express();
 app.use(express.json());
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*", credentials: true } });
-
+setupSwagger(app);
 // ==================== 🔔 INIT Notification ====================
 initNotification(io);
 io.of("/notification").on("connection", (socket) => {
