@@ -371,3 +371,17 @@ export const findProductsFlexible = async (options = {}) => {
 
   return { items, total };
 };
+
+export const restoreStockForCancelledOrder = async (items, tx = prisma) => {
+  if (!items?.length) return;
+
+  // Chạy song song các cập nhật stock
+  const updates = items.map((item) =>
+    tx.productVariant.update({
+      where: { id: item.variantId },
+      data: { stock: { increment: item.quantity } },
+    })
+  );
+
+  await Promise.all(updates);
+};

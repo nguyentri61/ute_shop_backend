@@ -239,3 +239,12 @@ export const getOrderDetail = async (orderId) => {
     },
   });
 };
+
+export const findOrderWithItems = async (orderId, userId) => {
+  return prisma.order.findFirst({
+    where: { id: orderId, userId },
+    include: {
+      items: { select: { variantId: true, quantity: true } },
+    },
+  });
+};
