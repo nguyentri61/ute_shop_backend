@@ -28,8 +28,12 @@ const fileFilter = (req, file, cb) => {
   else cb(new Error("Unsupported file type"), false);
 };
 
-export const uploadMedia = multer({
+const uploadMedia = multer({
   storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit (adjust)
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
   fileFilter,
 });
+
+// Export named AND default to avoid import mismatches
+export { uploadMedia };
+export default uploadMedia;
