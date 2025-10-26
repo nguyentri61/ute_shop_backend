@@ -46,24 +46,59 @@ export const getAdminProduct = async (req, res) => {
     }
 };
 
+const safeParseJson = (val, fallback = []) => {
+    if (!val) return fallback;
+    if (Array.isArray(val)) return val;
+    if (typeof val === "string") {
+        try {
+            const parsed = JSON.parse(val);
+            return Array.isArray(parsed) ? parsed : fallback;
+        } catch (e) {
+            return fallback;
+        }
+    }
+    return fallback;
+};
+
 export const createAdminProduct = async (req, res) => {
     try {
-        // req.body may contain JSON-strings for variants/images; parse safely
-        const body = { ...req.body };
+        // copy body and parse potential JSON-strings
+        const body = { ...(req.body || {}) };
 
-        // parse variants if sent as JSON string
-        if (body.variants && typeof body.variants === "string") {
-            try { body.variants = JSON.parse(body.variants); } catch (e) { body.variants = []; }
+        // parse arrays that may come as JSON strings
+        body.variants = safeParseJson(body.variants, []);
+        body.images = safeParseJson(body.images, []);
+
+        // normalize simple fields
+        body.name = body.name ? String(body.name).trim() : "";
+        body.description = body.description ? String(body.description).trim() : null;
+        body.categoryId = body.categoryId ? String(body.categoryId).trim() : "";
+
+        // basic validation
+        if (!body.name || !body.categoryId) {
+            const err = new Error("Name and categoryId are required");
+            err.code = "INVALID_INPUT";
+            throw err;
         }
-        // parse images urls array if sent as JSON string
-        if (body.images && typeof body.images === "string") {
-            try { body.images = JSON.parse(body.images); } catch (e) { body.images = []; }
-        }
 
-        // files from multer
-        const files = req.files || []; // array of File objects
+        // files from multer (may be empty array)
+        const files = req.files || [];
 
-        const created = await adminProductService.createProduct({ body, files, user: req.user });
+        // attach user info if available
+        const user = req.user || null;
+
+        // build payload for service — service can decide how to store files/urls
+        const payload = {
+            name: body.name,
+            description: body.description,
+            categoryId: body.categoryId,
+            variants: body.variants,
+            images: body.images, // existing image URLs (strings)
+            files, // array of uploaded files (multer File objects)
+            createdBy: user?.id ?? null,
+        };
+
+        const created = await adminProductService.createProduct(payload);
         return successResponse(res, "Tạo sản phẩm thành công", created, 201);
     } catch (err) {
         console.error("createAdminProduct error:", err);
@@ -75,16 +110,41 @@ export const createAdminProduct = async (req, res) => {
 export const updateAdminProduct = async (req, res) => {
     try {
         const { id } = req.params;
-        const payload = req.body || {};
+        if (!id) {
+            const err = new Error("Product id is required");
+            err.code = "INVALID_INPUT";
+            throw err;
+        }
+
+        // payload may contain JSON-strings for variants/images
+        const body = { ...(req.body || {}) };
+        body.variants = safeParseJson(body.variants, []);
+        body.images = safeParseJson(body.images, []);
+
+        // normalize fields if present
+        if (body.name) body.name = String(body.name).trim();
+        if (body.description) body.description = String(body.description).trim();
+        if (body.categoryId) body.categoryId = String(body.categoryId).trim();
+
+        // files from multer (if any)
+        const files = req.files || [];
+        const user = req.user || null;
+
+        const payload = {
+            ...body,
+            files, // uploaded files to be processed by service
+            updatedBy: user?.id ?? null,
+        };
+
         const updated = await adminProductService.updateProduct(id, payload);
         return successResponse(res, "Cập nhật sản phẩm thành công", updated);
     } catch (err) {
         console.error("updateAdminProduct error:", err);
+        if (err.code === "INVALID_INPUT") return errorResponse(res, err.message, 400);
         if (err.code === "NOT_FOUND") return errorResponse(res, err.message, 404);
         return errorResponse(res, err.message || "Lỗi khi cập nhật sản phẩm", 500);
     }
 };
-
 export const deleteAdminProduct = async (req, res) => {
     try {
         const { id } = req.params;
