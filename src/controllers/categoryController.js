@@ -72,6 +72,6 @@ export const allCategories = async (req, res) => {
         const categories = await categoryService.getAllCategories();
         return successResponse(res, "Lấy tất cả loại", categories);
     } catch (err) {
-        return errorResponse(res, err.message, 500);
+        return errorResponse(res, err.message || "Lỗi khi lấy danh sách", 500);
     }
 };
