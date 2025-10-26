@@ -2,6 +2,7 @@
 import express from "express";
 import { authMiddleware, adminMiddleware } from "../middlewares/authMiddlewares.js";
 import { uploadMedia } from "../middlewares/uploadMedia.js";
+
 import {
     // ADMIN - coupons
     getCouponStats,
@@ -31,10 +32,11 @@ import {
     createAdminUser,
     updateAdminUser,
     deleteAdminUser,
-    unblockAdminUser,    // <-- mở chặn
-    changeUserRole,      // <-- đổi vai trò
+    unblockAdminUser,
+    changeUserRole,
 } from "../controllers/adminUserController.js";
 
+// Products (admin)
 import {
     listAdminProducts,
     getAdminProduct,
@@ -43,14 +45,12 @@ import {
     deleteAdminProduct,
 } from "../controllers/adminProductController.js";
 
-
 const router = express.Router();
 
-// Tất cả endpoint dashboard / admin yêu cầu đăng nhập
+// All admin routes require authentication
 router.use(authMiddleware);
 
 // --- DASHBOARD ----------------------------------------------
-// Dashboard endpoints require auth (not necessarily admin)
 router.get("/dashboard/stats", getDashboardStats);
 router.get("/dashboard/weekly-sales", weeklySales);
 router.get("/dashboard/category-share", categoryShare);
@@ -60,69 +60,49 @@ router.get("/coupons/stats", adminMiddleware, getCouponStats);
 router.get("/coupons/distribution", adminMiddleware, getCouponDistribution);
 router.get("/coupons/expiring", adminMiddleware, getExpiringCoupons);
 
-// GET /api/admin/coupons?q=&type=&status=&userId=&page=&size=
 router.get("/coupons", adminMiddleware, listCoupons);
-
-// POST /api/admin/coupons
 router.post("/coupons", adminMiddleware, createCoupons);
-
-// PATCH /api/admin/coupons/:id
 router.patch("/coupons/:id", adminMiddleware, updateCoupon);
-
-// DELETE /api/admin/coupons/:id
 router.delete("/coupons/:id", adminMiddleware, deleteCoupon);
 
 // --- CATEGORIES (ADMIN) --------------------------------------
-// GET /api/admin/categories?q=&page=&size=
+// List / Get
 router.get("/categories", adminMiddleware, listCategories);
-
-// GET /api/admin/categories/:id
 router.get("/categories/:id", adminMiddleware, getCategory);
 
 // POST /api/admin/categories
-// body: { name, icon? }
-router.post("/categories", adminMiddleware, createCategory);
+router.post("/categories", adminMiddleware, uploadMedia.single("file"), createCategory);
 
 // PATCH /api/admin/categories/:id
-// body: { name?, icon? }
-router.patch("/categories/:id", adminMiddleware, updateCategory);
+router.patch("/categories/:id", adminMiddleware, uploadMedia.single("file"), updateCategory);
 
-// DELETE /api/admin/categories/:id
+// Delete category
 router.delete("/categories/:id", adminMiddleware, deleteCategory);
 
 // --- USERS (ADMIN) ------------------------------------------
-// GET /api/admin/users?q=&role=&start=&end=&page=&size=
 router.get("/users", adminMiddleware, listAdminUsers);
-
-// GET /api/admin/users/:id
 router.get("/users/:id", adminMiddleware, getAdminUser);
-
-// POST /api/admin/users
-// body: { email, fullName, phone?, role?, address? }
 router.post("/users", adminMiddleware, createAdminUser);
-
-// PATCH /api/admin/users/:id
-// body: { fullName?, phone?, role?, address?, verified? }
 router.patch("/users/:id", adminMiddleware, updateAdminUser);
-
-// DELETE /api/admin/users/:id
-// NOTE: backend should implement soft-block in deleteAdminUser
 router.delete("/users/:id", adminMiddleware, deleteAdminUser);
 
-// PATCH /api/admin/users/:id/unblock  -> mở chặn tài khoản
+// Unblock user
 router.patch("/users/:id/unblock", adminMiddleware, unblockAdminUser);
 
-// PATCH /api/admin/users/:id/role -> thay đổi vai trò (body: { role: "ADMIN"|"USER" })
+// Change user role
 router.patch("/users/:id/role", adminMiddleware, changeUserRole);
+
+// --- PRODUCTS (ADMIN) ---------------------------------------
 router.get("/products", adminMiddleware, listAdminProducts);
 router.get("/products/:id", adminMiddleware, getAdminProduct);
 
-// POST /api/admin/products
+// Create product: multipart, multiple files under "files" (max 10)
 router.post("/products", adminMiddleware, uploadMedia.array("files", 10), createAdminProduct);
 
-// PATCH /api/admin/products/:id
+// Update product: multipart, multiple files under "files" (max 10)
 router.patch("/products/:id", adminMiddleware, uploadMedia.array("files", 10), updateAdminProduct);
 
-// DELETE
+// Delete product
 router.delete("/products/:id", adminMiddleware, deleteAdminProduct);
+
 export default router;
